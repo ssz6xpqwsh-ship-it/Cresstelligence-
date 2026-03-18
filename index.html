@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>OSINT Globe</title>
+  <meta name="description" content="Interactive OSINT globe with regional headlines and topic filters." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="eyebrow">FREE • PHONE-FRIENDLY • STATIC SITE</div>
+      <h1 id="siteTitle">OSINT Globe</h1>
+      <p id="siteTagline">Tap a region, press a category, or type a topic.</p>
+    </div>
+
+    <div class="header-actions">
+      <button id="refreshBtn" class="secondary-btn">Refresh</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="globe-section">
+      <div id="globeViz"></div>
+
+      <div class="floating-panel left-panel">
+        <strong>How to use</strong>
+        <span>1. Spin globe</span>
+        <span>2. Tap a dot</span>
+        <span>3. Read live headlines</span>
+      </div>
+
+      <div class="floating-panel right-panel">
+        <strong>Version 1</strong>
+        <span>Globe + regional news + topic filters</span>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="card">
+        <h2>Categories</h2>
+        <div id="categoryButtons" class="button-grid"></div>
+        <p class="small">These are prebuilt searches so visitors can tap once and see stories fast.</p>
+      </section>
+
+      <section class="card">
+        <h2>Regions</h2>
+        <div id="regionButtons" class="button-stack"></div>
+        <p class="small">These do the same thing as tapping dots on the globe.</p>
+      </section>
+
+      <section class="card">
+        <h2>Search your own topic</h2>
+        <form id="topicForm" class="topic-form">
+          <input id="topicInput" type="text" placeholder="Example: drone OR wildfire OR Taiwan" />
+          <button type="submit">Search</button>
+        </form>
+        <p class="small">This searches recent global coverage through GDELT.</p>
+      </section>
+
+      <section class="card">
+        <h2 id="feedTitle">Global OSINT Pulse</h2>
+        <p id="feedSubtitle" class="small">Newest matching headlines.</p>
+        <div id="status" class="status">Loading starter feed...</div>
+        <div id="results" class="results"></div>
+      </section>
+
+      <section class="card">
+        <h2>Phase 2 later</h2>
+        <ul>
+          <li>Add OpenSky aircraft layer.</li>
+          <li>Add satellite data layer.</li>
+          <li>Add map/list toggle.</li>
+          <li>Add source filtering.</li>
+          <li>Add custom pages for each region.</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
