@@ -2,150 +2,146 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Cresstelligence</title>
-  <meta name="description" content="Cresstelligence: aviation, conflict, defense, and orbital watch on an interactive globe." />
-  <link rel="preconnect" href="https://unpkg.com" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cresstelligence | OSINT Desk</title>
+  <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://unpkg.com/globe.gl"></script>
 </head>
 <body>
-  <div class="app-shell">
+  <div class="shell">
     <header class="topbar">
-      <div class="brand-block">
-        <div class="eyebrow">OPEN SOURCE WATCH FLOOR</div>
-        <h1>Cresstelligence</h1>
-        <p>A cleaner global picture for aviation, defense, conflict, and space.</p>
+      <div class="brand">
+        <div class="brand-kicker">CRESSTELLIGENCE</div>
+        <h1>OSINT Desk</h1>
+        <p>World monitoring by city, port, capital, and pressure point.</p>
       </div>
 
-      <div class="topbar-actions">
-        <div class="status-pill">
-          <span>UTC</span>
-          <strong id="utcClock">--:--:--</strong>
+      <div class="topbar-tools">
+        <label class="search-wrap">
+          <span>Search city</span>
+          <input id="citySearch" type="search" placeholder="Taipei, Port Sudan, Warsaw..." autocomplete="off" />
+        </label>
+
+        <div class="scope-wrap">
+          <span>Scope</span>
+          <div id="scopeChips" class="scope-chips"></div>
         </div>
-        <div class="status-pill status-pill-accent">
-          <span>Focus</span>
-          <strong id="focusPill">Global</strong>
-        </div>
-        <button id="resetViewBtn" class="ghost-btn">Reset view</button>
       </div>
     </header>
 
-    <main class="layout">
-      <section class="globe-pane">
-        <div class="map-toolbar">
-          <button class="toolbar-chip active" data-layer="regions">Regions</button>
-          <button class="toolbar-chip active" data-layer="aircraft">Aircraft</button>
-          <button class="toolbar-chip active" data-layer="satellites">Satellites</button>
-          <button class="toolbar-chip active" data-layer="conflicts">Conflicts</button>
-          <button class="toolbar-chip active" data-layer="ew">GNSS / EW</button>
+    <main class="workspace">
+      <section class="globe-column">
+        <div class="stage-head">
+          <div class="stage-stat">
+            <span class="stat-label">Coverage</span>
+            <strong id="coverageCount">0 monitored locations</strong>
+          </div>
+          <div class="stage-stat">
+            <span class="stat-label">Selected</span>
+            <strong id="selectedLabel">Global overview</strong>
+          </div>
+          <div class="stage-stat">
+            <span class="stat-label">Mode</span>
+            <strong>City-first brief</strong>
+          </div>
         </div>
 
-        <div class="legend-card">
-          <div class="legend-item"><span class="dot dot-region"></span> Region focus</div>
-          <div class="legend-item"><span class="dot dot-air"></span> Aircraft</div>
-          <div class="legend-item"><span class="dot dot-space"></span> Satellites</div>
-          <div class="legend-item"><span class="dot dot-conflict"></span> Conflict</div>
-          <div class="legend-item"><span class="dot dot-ew"></span> GNSS / EW</div>
+        <div class="globe-shell">
+          <div id="globeViz"></div>
+          <div class="map-overlay top-left">
+            <div class="overlay-title">How to use</div>
+            <p>Tap a city dot, use search, or choose a region directory on the right. The globe stays still until you move it.</p>
+          </div>
+
+          <div class="map-overlay bottom-left" id="selectionOverlay">
+            <div class="overlay-title" id="selectionOverlayTitle">Global overview</div>
+            <p id="selectionOverlayText">Select a city to pull a direct brief and the latest developments.</p>
+          </div>
+
+          <div class="map-overlay bottom-right legend-box">
+            <div class="overlay-title">Legend</div>
+            <div class="legend-grid" id="legendGrid"></div>
+          </div>
         </div>
-
-        <div id="globeViz"></div>
-
-        <div id="mapPopup" class="map-popup hidden"></div>
       </section>
 
-      <aside class="side-panel">
-        <section class="panel-card compact-card">
-          <div class="section-label">Regions</div>
-          <div id="regionChips" class="region-chips"></div>
-        </section>
-
-        <section class="panel-card brief-card">
-          <div class="panel-heading-row">
+      <aside class="panel-column">
+        <section class="card overview-card">
+          <div class="card-head">
             <div>
-              <div class="section-label">Direct brief</div>
-              <h2 id="briefTitle">Global overview</h2>
+              <div class="eyebrow">Global pulse</div>
+              <h2>What matters most right now</h2>
             </div>
-            <span class="severity-chip" id="severityChip">Sev 2</span>
+            <button id="refreshGlobal" class="ghost-btn">Refresh</button>
           </div>
-          <p id="briefSummary" class="brief-summary"></p>
-          <div class="brief-grid">
-            <div class="brief-block">
-              <div class="brief-block-label">Aviation</div>
-              <p id="aviationText"></p>
-            </div>
-            <div class="brief-block">
-              <div class="brief-block-label">Defense / conflict</div>
-              <p id="defenseText"></p>
-            </div>
-            <div class="brief-block">
-              <div class="brief-block-label">Watch next</div>
-              <ul id="watchList" class="brief-list"></ul>
-            </div>
-            <div class="brief-block">
-              <div class="brief-block-label">Pressure points</div>
-              <ul id="pressureList" class="brief-list"></ul>
+          <div id="globalPulse" class="global-pulse">
+            <div class="pulse-line">
+              <span class="pulse-name">Loading baseline</span>
+              <span class="pulse-value">Preparing desk…</span>
             </div>
           </div>
         </section>
 
-        <section class="panel-card tabs-card">
-          <div class="tab-row">
-            <button class="tab-btn active" data-tab="air">Air</button>
-            <button class="tab-btn" data-tab="space">Space</button>
-            <button class="tab-btn" data-tab="watch">Watch</button>
-          </div>
-
-          <div class="tab-panel active" data-tab-panel="air">
-            <div class="mini-stats">
-              <div class="mini-stat"><span>Aircraft</span><strong id="aircraftCount">0</strong></div>
-              <div class="mini-stat"><span>Tracks</span><strong id="trackStatus">Sim</strong></div>
-            </div>
-            <div id="aircraftList" class="object-list"></div>
-          </div>
-
-          <div class="tab-panel" data-tab-panel="space">
-            <div class="mini-stats">
-              <div class="mini-stat"><span>Satellites</span><strong id="satelliteCount">0</strong></div>
-              <div class="mini-stat"><span>Orbit set</span><strong>Public</strong></div>
-            </div>
-            <div id="satelliteList" class="object-list"></div>
-          </div>
-
-          <div class="tab-panel" data-tab-panel="watch">
-            <div class="mini-stats">
-              <div class="mini-stat"><span>Conflicts</span><strong id="conflictCount">0</strong></div>
-              <div class="mini-stat"><span>GNSS / EW</span><strong id="ewCount">0</strong></div>
-            </div>
-            <div class="watch-columns">
-              <div>
-                <div class="subhead">Conflict zones</div>
-                <div id="conflictList" class="object-list compact-list"></div>
-              </div>
-              <div>
-                <div class="subhead">GNSS / EW</div>
-                <div id="ewList" class="object-list compact-list"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel-card selected-card">
-          <div class="panel-heading-row">
+        <section class="card selected-card">
+          <div class="card-head">
             <div>
-              <div class="section-label">Selected</div>
-              <h2 id="selectedTitle">Nothing selected</h2>
+              <div class="eyebrow">Selected location</div>
+              <h2 id="selectedTitle">Global overview</h2>
             </div>
-            <span class="kind-chip" id="selectedKind">Ready</span>
+            <div id="selectedPills" class="pill-row"></div>
           </div>
-          <div id="selectedBody" class="selected-body">
-            Tap a region, aircraft, satellite, conflict marker, or GNSS / EW zone.
+
+          <div class="selected-meta">
+            <div>
+              <span class="meta-label">Region</span>
+              <strong id="selectedRegion">All theaters</strong>
+            </div>
+            <div>
+              <span class="meta-label">Importance</span>
+              <strong id="selectedPriority">Scanning</strong>
+            </div>
+            <div>
+              <span class="meta-label">Focus</span>
+              <strong id="selectedFocus">Worldwide</strong>
+            </div>
+          </div>
+
+          <p id="selectedRationale" class="lede">Use the globe or directory to drill into a city-level brief.</p>
+        </section>
+
+        <section class="card tab-card">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="brief">Brief</button>
+            <button class="tab-btn" data-tab="developments">Developments</button>
+            <button class="tab-btn" data-tab="directory">Directory</button>
+          </div>
+
+          <div id="tab-brief" class="tab-panel active">
+            <div class="section-title">Presidential brief</div>
+            <ul id="briefList" class="brief-list"></ul>
+            <div class="subsection">
+              <div class="section-title">Watch next</div>
+              <p id="watchNext" class="watch-next">Loading world overview…</p>
+            </div>
+          </div>
+
+          <div id="tab-developments" class="tab-panel">
+            <div class="section-title">Latest developments</div>
+            <div id="headlinesStatus" class="status-line">Pulling live reporting…</div>
+            <div id="headlinesList" class="headline-list"></div>
+          </div>
+
+          <div id="tab-directory" class="tab-panel">
+            <div class="section-title">City directory</div>
+            <div id="directoryList" class="directory-list"></div>
           </div>
         </section>
       </aside>
     </main>
   </div>
 
-  <script type="module" src="app.js"></script>
+  <script src="https://unpkg.com/three"></script>
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script src="app.js"></script>
 </body>
 </html>
