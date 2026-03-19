@@ -20,7 +20,7 @@
 
 const SITE = {
   title: 'Cresswells Intel Watch',
-  tagline: 'Interactive Global OSINT feed.'
+  tagline: 'Interactive Global OSINT Feed.'
 };
 
 const REGIONS = [
