@@ -1,2034 +1,825 @@
-import * as satellite from 'https://esm.sh/satellite.js@6.0.2';
-
 const GlobeFactory = window.Globe;
-const SAT_CACHE_KEY = 'cresstelligence-sat-cache-v5';
-const SAT_CACHE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
-const SAT_UPDATE_INTERVAL_MS = 2500;
-const AIR_UPDATE_INTERVAL_MS = 1400;
-const AIR_LIMIT = 14;
-const SAT_LIMIT_PER_GROUP = 6;
 
 const SITE = {
   title: 'Cresstelligence',
-  tagline: 'Defense, aviation, orbital, and conflict posture in one interactive open-source picture.'
+  tagline: 'A cleaner global picture for aviation, defense, conflict, and space.'
 };
 
-const ICONS = {
-  aircraft: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16.5 13.6 13l-.8-5.6 2-1.4V4.5l-3 1-3-1V6l2 1.4-.8 5.6L2 16.5V18l8-1.1V21l1.9-1.3L13.8 21v-4.1L22 18z"/></svg>',
-  satellite: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3 3 7l3 3-1.5 1.5L3 10 1 12l2 2 1.5-1.5L6 15l4-4-3-3zm10 6-4 4 3 3 4-4-3-3zm-1-6-1.5 1.5L17 7l1.5-1.5zM8 17l-1.5 1.5L8 20l1.5-1.5zM13 8l3 3m-8 2 3 3" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  conflict: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3h9l-2 4 5 2-2 5H9l2-4-6-2zM5 14h2v7H5z"/></svg>',
-  ew: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4a8 8 0 0 1 8 8h-2a6 6 0 0 0-6-6zm0 4a4 4 0 0 1 4 4h-2a2 2 0 0 0-2-2zm0 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-8-1a8 8 0 0 1 8-8v2a6 6 0 0 0-6 6zm2 0a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2z"/></svg>',
-  region: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>'
+const PLANE_SVGS = {
+  fighter: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 4 39 20l17 8-12 4 4 18-10-6-6 16-6-16-10 6 4-18-12-4 17-8z"/></svg>`,
+  awacs: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 4c3 0 5 2 5 5v9l8 5h8l4 5-12 2-8-1v12l8 12v5l-12-4-4 6-4-6-12 4v-5l8-12V29l-8 1-12-2 4-5h8l8-5V9c0-3 2-5 5-5z"/></svg>`,
+  tanker: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 4c3 0 5 2 5 5v11l10 5 9 1 4 5-13 2-10-1v13l7 10v5l-11-4-4 6-4-6-11 4v-5l7-10V32l-10 1-13-2 4-5 9-1 10-5V9c0-3 2-5 5-5z"/></svg>`,
+  airliner: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 3c3 0 5 2 5 5v13l12 6 10 1 3 5-13 2-12-1v13l6 10v4l-10-4-6 7-6-7-10 4v-4l6-10V34l-12 1-13-2 3-5 10-1 12-6V8c0-3 2-5 5-5z"/></svg>`
 };
 
-
-const MARKER_GLYPHS = {
-  fighter: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 2 38 18l16 8-11 4 3 16-8-5-6 21-6-21-8 5 3-16-11-4 16-8 6-16Z"/></svg>`,
-  airliner: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 3c2 0 4 2 4 4v14l14 7v5l-14-3v14l5 8v5l-8-3-4 7-4-7-8 3v-5l5-8V30l-14 3v-5l14-7V7c0-2 2-4 4-4h6Z"/></svg>`,
-  cargo: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M28 4h8c2 0 4 2 4 4v12l16 8v6l-16-3v13l6 9v5l-10-4-4 8-4-8-10 4v-5l6-9V31L8 34v-6l16-8V8c0-2 2-4 4-4Z"/></svg>`,
-  rotary: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M11 18h42v4H11zM30 12h4v11h-4zM18 30h20c5 0 9 4 9 9v3H17v-3c0-5 4-9 9-9Zm10 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Zm-12 0a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z"/></svg>`,
-  uav: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 8 36 18l18 7v4l-18-3-4 6-4-6-18 3v-4l18-7 4-10Zm-4 25h8v14l6 7v3l-10-4-10 4v-3l6-7V33Z"/></svg>`,
-  awacs: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M21 20h22v4H21zM32 8a12 12 0 0 1 12 8H20a12 12 0 0 1 12-8Zm-3 14h6v26l5 8v3l-8-4-8 4v-3l5-8V22Zm-18 8 18-4 3 5-4 6-17 4v-5l9-3-9-3v-0Zm42 0v5l-17-4-4-6 3-5 18 4-9 3 9 3Z"/></svg>`,
-  tanker: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 4h2c3 0 5 2 5 5v12l15 8v5l-15-3v13l5 8v4l-9-3-2 8-2-8-9 3v-4l5-8V31l-15 3v-5l15-8V9c0-3 2-5 5-5Zm8 28c5 2 8 6 8 12h-4c0-4-2-7-6-9z"/></svg>`,
-  isr: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 5 36 16l17 7v4l-17-3-4 7-4-7-17 3v-4l17-7 4-11Zm-3 27h6v14l7 8v3l-10-4-10 4v-3l7-8V32Zm-10-9h26v4H19z"/></svg>`,
-  satellite: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><rect x="24" y="22" width="16" height="20" rx="3"/><rect x="6" y="20" width="14" height="24" rx="2"/><rect x="44" y="20" width="14" height="24" rx="2"/><path d="M20 32h4m16 0h4M30 14h4v8h-4zM29 42h6v8h-6z" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
-  conflict: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M29 6h6v13l11-6 3 5-11 6 11 6-3 5-11-6v13h-6V29l-11 6-3-5 11-6-11-6 3-5 11 6V6Z"/></svg>`,
-  ew: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="32" r="4"/><path d="M32 18a14 14 0 0 1 14 14M32 10a22 22 0 0 1 22 22M18 32a14 14 0 0 1 14-14M10 32a22 22 0 0 1 22-22" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M20 44h24" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`,
-  region: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 6 50 18v28L32 58 14 46V18L32 6Zm0 8-11 7v14l11 7 11-7V21l-11-7Z"/></svg>`
-};
-
-const AIRCRAFT_VISUALS = {
-  fighter: {
-    label: 'Fighter',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M338 82 240 72 188 28h-28l20 40-42 11-36-10-12-20H72l10 28-60 13v12l60 13-10 28h18l12-20 36-10 42 11-20 40h28l52-44 98-10v-16Z" fill="#90F5FF" fill-opacity="0.9"/><path d="M166 68h28M166 92h28" stroke="#DDFBFF" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  airliner: {
-    label: 'Airliner',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M332 74 184 66 110 30H80l22 36-64 8v12l64 8-22 36h30l74-36 148-8v-12Z" fill="#8BE7FF" fill-opacity="0.92"/><path d="M132 60 92 34m40 66-40 26m52-28h52" stroke="#E7FDFF" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  cargo: {
-    label: 'Cargo',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M334 70H220l-52-30h-46l14 30H64l-36 16 36 16h72l-14 30h46l52-30h114V70Z" fill="#A7F7CF" fill-opacity="0.9"/><path d="M126 70v32m24-32v32" stroke="#F0FFF8" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  rotary: {
-    label: 'Rotary',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M72 84h112l18-16h42l20 16h34v14h-34l-20 16h-42l-18-16H72V84Z" fill="#FFD889" fill-opacity="0.92"/><path d="M184 68V36m-98 48h196" stroke="#FFF2CC" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  uav: {
-    label: 'UAV',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M326 82 230 72 180 50 130 72 34 82v8l96 10 50 22 50-22 96-10v-8Z" fill="#FFC3C3" fill-opacity="0.9"/><path d="M180 50V34m-26 38h52" stroke="#FFF1F1" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  awacs: {
-    label: 'AEW&C',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M328 74 188 68 114 34H84l18 34-62 10v8l62 10-18 34h30l74-34 140-6v-16Z" fill="#CABEFF" fill-opacity="0.9"/><ellipse cx="190" cy="42" rx="56" ry="12" fill="#F5F1FF" fill-opacity="0.95"/></svg>`
-  },
-  tanker: {
-    label: 'Tanker',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M332 72 186 64 108 34H78l22 30-62 10v12l62 10-22 30h30l78-30 146-8v-16Z" fill="#8EE6D3" fill-opacity="0.92"/><path d="M196 86c14 0 28 10 28 24" stroke="#E8FFF8" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  isr: {
-    label: 'ISR',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M332 78 204 70l-50-22-50 22L28 78v8l76 8 50 22 50-22 128-8v-8Z" fill="#8FD8FF" fill-opacity="0.9"/><circle cx="154" cy="70" r="8" fill="#F2FDFF"/></svg>`
-  },
-  satellite: {
-    label: 'Satellite',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="134" y="54" width="92" height="52" rx="10" fill="#FFE299" fill-opacity="0.95"/><rect x="34" y="44" width="80" height="72" rx="8" fill="#8CC8FF" fill-opacity="0.9"/><rect x="246" y="44" width="80" height="72" rx="8" fill="#8CC8FF" fill-opacity="0.9"/><path d="M114 80h20m92 0h20" stroke="#FFF7E2" stroke-width="8" stroke-linecap="round"/></svg>`
-  },
-  conflict: {
-    label: 'Conflict zone',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="180" cy="80" r="56" fill="#FF9E58" fill-opacity="0.18"/><circle cx="180" cy="80" r="36" fill="#FF6B6B" fill-opacity="0.32"/><path d="M180 34v92m-46-46h92" stroke="#FFD9C0" stroke-width="10" stroke-linecap="round"/></svg>`
-  },
-  ew: {
-    label: 'GNSS / EW',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="180" cy="80" r="18" fill="#FFB0B0"/><circle cx="180" cy="80" r="42" stroke="#FF6B6B" stroke-width="10" stroke-dasharray="18 10"/><circle cx="180" cy="80" r="66" stroke="#FFC2C2" stroke-width="8" stroke-dasharray="8 12"/></svg>`
-  },
-  region: {
-    label: 'Region',
-    svg: `<svg viewBox="0 0 360 160" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M56 90c20-42 74-60 122-42 36-24 88-18 122 16 14 14 24 32 28 52H56v-26Z" fill="#8FE1FF" fill-opacity="0.3"/><path d="M84 70h192M68 102h224" stroke="#DFF8FF" stroke-width="8" stroke-linecap="round"/></svg>`
-  }
-};
+const SAT_SVG = `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M26 30h12v4H26z" fill="currentColor"/><path d="m18 22 8 8-8 8-8-8zm28 0 8 8-8 8-8-8z"/><path d="M32 12v18m0 4v18M22 32H8m48 0H42"/></g></svg>`;
 
 const REGIONS = [
   {
+    id: 'global',
+    name: 'Global',
+    lat: 20,
+    lng: 10,
+    altitude: 2.05,
+    severity: 'Sev 2',
+    summary: 'The current picture is defined by overlapping air-defense modernization, drone-heavy warfare, maritime chokepoint pressure, and persistent navigation risk near active theaters.',
+    aviation: 'Commercial traffic remains dense across core corridors, while military support missions cluster near high-friction belts and key logistics bridges.',
+    defense: 'The loudest patterns are layered air defense, long-range strike adaptation, ISR demand, and force posture signaling around maritime and border flashpoints.',
+    watch: ['Airspace restrictions near active fronts', 'Missile and drone warning cycles', 'Civil-military deconfliction in busy corridors'],
+    pressure: ['Eastern Europe / Black Sea', 'Levant / Gulf / Red Sea', 'South China Sea and alliance patrol lanes']
+  },
+  {
+    id: 'eurasia',
+    name: 'Eastern Europe / Black Sea',
+    lat: 47,
+    lng: 33,
+    altitude: 1.45,
+    severity: 'Sev 4',
+    summary: 'This region stays elevated because strike depth, maritime access, and air-defense adaptation all feed each other in a tight operating space.',
+    aviation: 'Expect reroutes, higher military air-support density, and more surveillance / tanker patterns around the Black Sea shoulders.',
+    defense: 'The defense story is layered: long-range drones, missile defense stress, coastal access concerns, and heavy ISR demand.',
+    watch: ['Changes in air-defense posture', 'Black Sea shipping and aerial corridor shifts', 'Strike tempo against logistics and infrastructure'],
+    pressure: ['Crimea / Black Sea', 'Odesa approaches', 'Border-adjacent support corridors']
+  },
+  {
     id: 'middle-east',
-    label: 'Middle East',
-    lat: 29,
-    lng: 45,
-    altitude: 0.018,
-    query: '(Israel OR Lebanon OR Iran OR Syria OR Yemen OR Red Sea OR Gulf)',
-    bbox: { lamin: 12, lamax: 38, lomin: 28, lomax: 58 },
-    theme: 'Theater remains compressed, missile-sensitive, and prone to navigation disruption along Gulf and Levant corridors.'
+    name: 'Levant / Gulf / Red Sea',
+    lat: 27,
+    lng: 44,
+    altitude: 1.5,
+    severity: 'Sev 5',
+    summary: 'Regional overlap between maritime risk, missile defense, and expeditionary air operations keeps this one of the most sensitive sectors on the board.',
+    aviation: 'Commercial operators watch reroutes and insurance exposure while military air movements emphasize ISR, tanker support, and quick-reaction coverage.',
+    defense: 'This region is all about escalation management: proxy pressure, integrated air defense, maritime interdiction, and strategic infrastructure protection.',
+    watch: ['Red Sea transit security', 'Missile / drone launch windows', 'Air-defense saturation risk around key facilities'],
+    pressure: ['Bab el-Mandeb', 'Eastern Mediterranean', 'Gulf energy and logistics nodes']
   },
   {
-    id: 'eastern-europe',
-    label: 'Eastern Europe',
-    lat: 49,
-    lng: 31,
-    altitude: 0.018,
-    query: '(Ukraine OR Russia OR Black Sea OR drone OR missile)',
-    bbox: { lamin: 42, lamax: 58, lomin: 22, lomax: 42 },
-    theme: 'Drone-heavy attrition and strike activity continue to set the regional tempo.'
-  },
-  {
-    id: 'sudan-red-sea',
-    label: 'Sudan / Red Sea',
-    lat: 16,
-    lng: 34,
-    altitude: 0.017,
-    query: '(Sudan OR Darfur OR Kordofan OR Red Sea OR Bab el-Mandeb)',
-    bbox: { lamin: 5, lamax: 24, lomin: 25, lomax: 46 },
-    theme: 'Civil war, aid pressure, and shipping-route exposure overlap here.'
-  },
-  {
-    id: 'south-china-sea',
-    label: 'South China Sea',
-    lat: 13,
-    lng: 114,
-    altitude: 0.017,
-    query: '("South China Sea" OR Philippines OR China OR Spratly OR Scarborough)',
-    bbox: { lamin: 0, lamax: 24, lomin: 103, lomax: 123 },
-    theme: 'Maritime coercion, patrols, and alliance signaling drive the picture.'
-  },
-  {
-    id: 'baltic-black-sea',
-    label: 'Baltic / Black Sea',
-    lat: 55,
-    lng: 25,
-    altitude: 0.017,
-    query: '(Baltic OR Black Sea OR GPS OR spoofing OR navigation OR NATO)',
-    bbox: { lamin: 44, lamax: 61, lomin: 15, lomax: 40 },
-    theme: 'Navigation interference and military pressure overlap across European approaches.'
-  },
-  {
-    id: 'east-africa-congo',
-    label: 'East Africa / Congo',
-    lat: -2,
-    lng: 29,
-    altitude: 0.017,
-    query: '(Congo OR M23 OR Goma OR Rwanda OR East Africa)',
-    bbox: { lamin: -12, lamax: 8, lomin: 20, lomax: 38 },
-    theme: 'Fragile ceasefires and drone-enabled fighting keep the zone unstable.'
-  },
-  {
-    id: 'north-america',
-    label: 'North America',
-    lat: 39,
-    lng: -98,
-    altitude: 0.017,
-    query: '(United States OR Canada OR NORAD OR airspace OR wildfire OR cyber)',
-    bbox: { lamin: 24, lamax: 52, lomin: -127, lomax: -66 },
-    theme: 'This sector acts as your baseline comparison picture for homeland and continental activity.'
-  }
-];
-
-const CATEGORIES = [
-  { id: 'conflict', label: 'Conflict', query: '(conflict OR strike OR drone OR missile OR offensive OR ceasefire)' },
-  { id: 'air', label: 'Air & AD', query: '(fighter OR bomber OR air defense OR sortie OR interceptor OR drone)' },
-  { id: 'space', label: 'Space', query: '(satellite OR launch OR orbit OR debris OR GPS OR Starlink)' },
-  { id: 'maritime', label: 'Maritime', query: '(shipping OR tanker OR navy OR strait OR coast guard OR maritime)' },
-  { id: 'cyber', label: 'Cyber', query: '(cyberattack OR malware OR ransomware OR intrusion OR breach)' },
-  { id: 'disaster', label: 'Disaster', query: '(wildfire OR flood OR quake OR volcano OR storm OR drought)' }
-];
-
-const LAYERS = [
-  { id: 'regions', label: 'Regions', defaultOn: true },
-  { id: 'aircraft', label: 'Aircraft', defaultOn: true },
-  { id: 'satellites', label: 'Satellites', defaultOn: true },
-  { id: 'conflicts', label: 'Conflicts', defaultOn: true },
-  { id: 'ew', label: 'GNSS/EW', defaultOn: true }
-];
-
-const HOTSPOTS = [
-  {
-    id: 'conf-middle-east',
-    kind: 'conflict',
-    label: 'Levant / Gulf war zone',
-    lat: 31,
-    lng: 40,
-    severity: 5,
-    regionIds: ['middle-east'],
-    summary: 'Regional war pressure spans Iran, Israel, Lebanon, Gulf infrastructure, and maritime approaches.',
-    actors: 'Israel, Iran, Hezbollah, U.S. forces, Gulf states',
-    watch: 'Watch missile volume, maritime spillover, and air defense saturation.',
-    source: 'Reuters and regional conflict reporting'
-  },
-  {
-    id: 'conf-ukraine',
-    kind: 'conflict',
-    label: 'Ukraine strike belt',
-    lat: 48.7,
-    lng: 32.2,
-    severity: 4,
-    regionIds: ['eastern-europe', 'baltic-black-sea'],
-    summary: 'Deep-strike drone warfare and battlefield data modernization keep the theater highly dynamic.',
-    actors: 'Ukraine, Russia',
-    watch: 'Watch Odesa, Black Sea access, and AI-enabled drone adaptation.',
-    source: 'Reuters battlefield and strike coverage'
-  },
-  {
-    id: 'conf-sudan',
-    kind: 'conflict',
-    label: 'Sudan civil war front',
-    lat: 13.5,
-    lng: 30,
-    severity: 4,
-    regionIds: ['sudan-red-sea'],
-    summary: 'Army-RSF fighting, civilian strikes, and aid strain keep Sudan one of the hardest-hit humanitarian zones.',
-    actors: 'Sudanese Armed Forces, RSF',
-    watch: 'Watch Darfur, Kordofan, and cross-border shock into Chad.',
-    source: 'AP and Reuters humanitarian/conflict reporting'
-  },
-  {
-    id: 'conf-red-sea',
-    kind: 'conflict',
-    label: 'Red Sea choke point',
-    lat: 16,
-    lng: 42,
-    severity: 4,
-    regionIds: ['middle-east', 'sudan-red-sea'],
-    summary: 'Commercial rerouting, Gulf export pressure, and the Bab el-Mandeb transit risk remain operationally important.',
-    actors: 'Shipping firms, regional militaries, Houthi-linked threat environment',
-    watch: 'Watch diversions, insurance shocks, and corridor security.',
-    source: 'Reuters shipping coverage'
-  },
-  {
-    id: 'conf-scs',
-    kind: 'conflict',
-    label: 'Scarborough / SCS friction',
+    id: 'indopacific',
+    name: 'South China Sea / Indo-Pacific',
     lat: 15,
-    lng: 117,
-    severity: 3,
-    regionIds: ['south-china-sea'],
-    summary: 'Sovereignty disputes, patrols, and alliance signaling keep the sea lane tense.',
-    actors: 'China, Philippines, U.S., regional navies',
-    watch: 'Watch patrol tempo and rules-of-engagement risk around disputed features.',
-    source: 'Reuters South China Sea coverage'
+    lng: 120,
+    altitude: 1.55,
+    severity: 'Sev 3',
+    summary: 'The picture here is less about one active war and more about patrol tempo, signaling, contested maritime space, and escalation management.',
+    aviation: 'Air activity tends to revolve around patrol, surveillance, aerial refueling, and busy civil corridors that share space with state signaling.',
+    defense: 'The central issue is coercion without uncontrolled escalation: sovereignty friction, gray-zone activity, and alliance assurance.',
+    watch: ['Patrol tempo around disputed features', 'ADIZ / intercept signaling', 'Civil corridor disruption from military posturing'],
+    pressure: ['Luzon approaches', 'Central South China Sea', 'Alliance exercise areas']
   },
   {
-    id: 'conf-congo',
-    kind: 'conflict',
-    label: 'Eastern Congo',
-    lat: -1.7,
-    lng: 29.2,
-    severity: 3,
-    regionIds: ['east-africa-congo'],
-    summary: 'Drone strikes and ceasefire failures continue to undercut stabilization efforts in and around Goma.',
-    actors: 'DRC forces, M23, regional actors',
-    watch: 'Watch Goma, cross-border implications, and civilian protection issues.',
-    source: 'AP eastern Congo reporting'
+    id: 'north-atlantic',
+    name: 'North Atlantic / Arctic approach',
+    lat: 58,
+    lng: -22,
+    altitude: 1.58,
+    severity: 'Sev 2',
+    summary: 'This sector matters because it links reinforcement routes, air-defense warning networks, and undersea / maritime posture near the high north.',
+    aviation: 'Heavy civil flows meet strategic mobility, patrol aviation, and the long-haul corridors that matter in any reinforcement scenario.',
+    defense: 'The key defense theme is early warning, route assurance, and maintaining secure movement across a very large operating space.',
+    watch: ['Long-range patrol activity', 'Weather-driven route compression', 'Air and maritime warning posture'],
+    pressure: ['GIUK-related transit space', 'Northern reinforcement routes', 'Arctic surveillance lanes']
   },
   {
-    id: 'ew-baltic',
-    kind: 'ew',
-    label: 'Baltic GNSS disruption',
-    lat: 57.5,
-    lng: 22.5,
-    severity: 4,
-    regionIds: ['baltic-black-sea', 'eastern-europe'],
-    summary: 'Persistent jamming/spoofing risk affects shipping and aviation in the Baltic approaches.',
-    actors: 'Civil aviation and maritime users in a contested EW environment',
-    watch: 'Watch safety, route changes, and signal integrity complaints.',
-    source: 'GPSJAM, EASA, Reuters GNSS coverage'
-  },
-  {
-    id: 'ew-eastern-med',
-    kind: 'ew',
-    label: 'Eastern Med / Levant GNSS',
-    lat: 33,
-    lng: 35,
-    severity: 4,
-    regionIds: ['middle-east'],
-    summary: 'Conflict-zone GNSS degradation remains a recurring aviation and maritime hazard.',
-    actors: 'Air and maritime operators',
-    watch: 'Watch route restrictions and spoofed position reports.',
-    source: 'GPSJAM and EASA interference region references'
-  },
-  {
-    id: 'ew-gulf',
-    kind: 'ew',
-    label: 'Persian Gulf / Hormuz GNSS',
-    lat: 26.5,
-    lng: 53,
-    severity: 5,
-    regionIds: ['middle-east'],
-    summary: 'The Gulf approaches face high navigation-integrity risk amid regional conflict and shipping disruption.',
-    actors: 'Commercial shipping, regional militaries, civil aviation',
-    watch: 'Watch spoofed tracks, congestion, and maritime collision risk.',
-    source: 'GPSJAM and maritime GNSS reporting'
-  },
-  {
-    id: 'ew-black-sea',
-    kind: 'ew',
-    label: 'Black Sea GNSS pressure',
-    lat: 44.4,
-    lng: 34.5,
-    severity: 3,
-    regionIds: ['eastern-europe', 'baltic-black-sea'],
-    summary: 'The Black Sea remains part of the broader interference belt surrounding active conflict and military presence.',
-    actors: 'Shipping, coastal states, military aviation',
-    watch: 'Watch degraded navigation and route workarounds.',
-    source: 'EASA regional warning patterns and GPSJAM map context'
+    id: 'east-africa',
+    name: 'Horn / East Africa',
+    lat: 9,
+    lng: 40,
+    altitude: 1.62,
+    severity: 'Sev 3',
+    summary: 'This sector combines fragile state security, maritime route importance, and spillover from nearby conflict zones.',
+    aviation: 'Expect uneven civil recoverability, patchy airspace confidence, and military logistics / ISR importance near littoral choke points.',
+    defense: 'Defense attention here centers on corridor stability, insurgent or militia pressure, and the strategic consequences of maritime disruption.',
+    watch: ['Port and corridor resilience', 'Red Sea spillover', 'Humanitarian / security air bridge demand'],
+    pressure: ['Horn littorals', 'Aden approaches', 'Interior instability corridors']
   }
 ];
 
-const SATELLITE_GROUPS = [
-  { id: 'stations', label: 'Stations', url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=STATIONS&FORMAT=TLE' },
-  { id: 'gps', label: 'GPS Ops', url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=GPS-OPS&FORMAT=TLE' },
-  { id: 'weather', label: 'Weather', url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=WEATHER&FORMAT=TLE' }
+const CONFLICTS = [
+  { id: 'conf-1', name: 'Black Sea strike belt', type: 'Conflict', regionId: 'eurasia', lat: 45.6, lng: 34.8, severity: 'High', summary: 'Persistent strike, ISR, and maritime-access pressure.' },
+  { id: 'conf-2', name: 'Levant war arc', type: 'Conflict', regionId: 'middle-east', lat: 32.2, lng: 37.5, severity: 'Critical', summary: 'Dense overlap of air defense, proxy pressure, and force posture.' },
+  { id: 'conf-3', name: 'Red Sea chokepoint', type: 'Conflict', regionId: 'middle-east', lat: 16.8, lng: 42.1, severity: 'High', summary: 'Shipping risk and corridor security remain tightly linked.' },
+  { id: 'conf-4', name: 'South China Sea friction', type: 'Conflict', regionId: 'indopacific', lat: 14.4, lng: 116.8, severity: 'Elevated', summary: 'Patrol tempo and contested sovereignty keep the zone tense.' },
+  { id: 'conf-5', name: 'Horn corridor instability', type: 'Conflict', regionId: 'east-africa', lat: 13.5, lng: 43.4, severity: 'Elevated', summary: 'Fragility plus maritime proximity amplifies regional risk.' }
 ];
 
-const FALLBACK_TLES = [
-  { name: 'ISS (ZARYA)', groupLabel: 'Stations', line1: '1 25544U 98067A   26078.51803009  .00008648  00000+0  15866-3 0  9995', line2: '2 25544  51.6394 183.6170 0005998 249.6994 172.8730 15.50100586500314' },
-  { name: 'CSS (TIANHE)', groupLabel: 'Stations', line1: '1 48274U 21035A   26078.35245370  .00015516  00000+0  19184-3 0  9999', line2: '2 48274  41.4721  22.9042 0008029 110.0788 278.8329 15.58101411273689' },
-  { name: 'GPS BIIR-2  (PRN 13)', groupLabel: 'GPS Ops', line1: '1 24876U 97035A   26078.10497552 -.00000057  00000+0  00000+0 0  9991', line2: '2 24876  54.2241 115.7402 0108103  51.2851 309.7827  2.00564016210650' },
-  { name: 'GPS BIIF-4 (PRN 27)', groupLabel: 'GPS Ops', line1: '1 39533U 14008A   26078.45424657 -.00000031  00000+0  00000+0 0  9990', line2: '2 39533  55.0684 238.6493 0047121 178.8650 181.1632  2.00568556 87950' },
-  { name: 'NOAA 19', groupLabel: 'Weather', line1: '1 33591U 09005A   26078.36083259  .00000066  00000+0  64463-4 0  9998', line2: '2 33591  99.1887 145.1946 0014143 332.7048  27.3140 14.12342333882870' },
-  { name: 'METEOR-M 2-3', groupLabel: 'Weather', line1: '1 57166U 23091A   26078.44660727  .00000170  00000+0  98564-4 0  9990', line2: '2 57166  98.5876 129.5904 0004725  74.3114 285.8578 14.21136363 14234' }
+const EW_ZONES = [
+  { id: 'ew-1', name: 'Eastern Med GNSS interference', type: 'GNSS / EW', regionId: 'middle-east', lat: 34.0, lng: 30.8, severity: 'Degraded', summary: 'Reported navigation reliability issues can complicate civil and military planning.' },
+  { id: 'ew-2', name: 'Baltic / northeast EW pressure', type: 'GNSS / EW', regionId: 'north-atlantic', lat: 58.4, lng: 25.0, severity: 'Intermittent', summary: 'Navigation confidence can degrade during heightened regional activity.' },
+  { id: 'ew-3', name: 'Black Sea navigation stress', type: 'GNSS / EW', regionId: 'eurasia', lat: 44.7, lng: 37.6, severity: 'Degraded', summary: 'Aviation and maritime users should expect contested PNT conditions.' },
+  { id: 'ew-4', name: 'Gulf corridor interference watch', type: 'GNSS / EW', regionId: 'middle-east', lat: 26.4, lng: 52.9, severity: 'Watch', summary: 'Sensitive infrastructure and dense traffic make PNT degradation significant.' }
 ];
 
-const state = {
-  globe: null,
-  selectedRegion: REGIONS[0],
-  currentSelection: {
-    id: REGIONS[0].id,
-    label: REGIONS[0].label,
-    query: REGIONS[0].query,
-    type: 'region'
+const AIRCRAFT = [
+  {
+    id: 'air-1',
+    callsign: 'RAPTOR 11',
+    type: 'F-35A',
+    role: 'CAP',
+    affiliation: 'Coalition',
+    regionId: 'middle-east',
+    symbol: 'fighter',
+    altitudeFt: 32000,
+    speedKt: 465,
+    route: [[26, 46], [29, 50], [31, 46], [28, 43]]
   },
-  selectedObject: REGIONS[0],
-  showRegions: true,
-  showAircraft: true,
-  showSatellites: true,
-  showConflicts: true,
-  showEw: true,
-  stories: [],
-  aircraft: [],
-  aircraftArcs: [],
-  aircraftMode: 'boot',
-  aircraftTimer: null,
-  satCatalog: [],
-  satPoints: [],
-  satTimer: null,
-  selectedSatellitePath: [],
-  ambienceOn: false,
-  ambienceHandle: null,
-  selectedMarkerId: REGIONS[0].id,
-  activeTab: 'brief',
-  freeSpin: false
+  {
+    id: 'air-2',
+    callsign: 'SENTRY 61',
+    type: 'E-3',
+    role: 'AEW&C',
+    affiliation: 'NATO',
+    regionId: 'north-atlantic',
+    symbol: 'awacs',
+    altitudeFt: 29000,
+    speedKt: 360,
+    route: [[59, -15], [58, -5], [61, -12], [58, -20]]
+  },
+  {
+    id: 'air-3',
+    callsign: 'SHELL 42',
+    type: 'KC-46',
+    role: 'Tanker',
+    affiliation: 'USAF',
+    regionId: 'eurasia',
+    symbol: 'tanker',
+    altitudeFt: 27000,
+    speedKt: 340,
+    route: [[48, 24], [49, 31], [47, 36], [46, 29]]
+  },
+  {
+    id: 'air-4',
+    callsign: 'ATLAS 205',
+    type: 'A400M',
+    role: 'Logistics',
+    affiliation: 'NATO',
+    regionId: 'eurasia',
+    symbol: 'airliner',
+    altitudeFt: 25000,
+    speedKt: 300,
+    route: [[51, 17], [49, 24], [47, 28], [45, 20]]
+  },
+  {
+    id: 'air-5',
+    callsign: 'CIVIL 908',
+    type: 'A350',
+    role: 'Commercial',
+    affiliation: 'Civil',
+    regionId: 'indopacific',
+    symbol: 'airliner',
+    altitudeFt: 37000,
+    speedKt: 485,
+    route: [[22, 113], [19, 118], [14, 122], [9, 127]]
+  },
+  {
+    id: 'air-6',
+    callsign: 'VIGIL 33',
+    type: 'P-8A',
+    role: 'Maritime ISR',
+    affiliation: 'Coalition',
+    regionId: 'indopacific',
+    symbol: 'awacs',
+    altitudeFt: 21000,
+    speedKt: 330,
+    route: [[16, 119], [15, 124], [12, 121], [13, 116]]
+  },
+  {
+    id: 'air-7',
+    callsign: 'LANCER 72',
+    type: 'Typhoon',
+    role: 'QRA',
+    affiliation: 'NATO',
+    regionId: 'north-atlantic',
+    symbol: 'fighter',
+    altitudeFt: 34000,
+    speedKt: 510,
+    route: [[61, -7], [63, 2], [58, 4], [56, -4]]
+  },
+  {
+    id: 'air-8',
+    callsign: 'TRIDENT 54',
+    type: 'F/A-18',
+    role: 'Carrier air patrol',
+    affiliation: 'Naval',
+    regionId: 'middle-east',
+    symbol: 'fighter',
+    altitudeFt: 30000,
+    speedKt: 440,
+    route: [[18, 57], [22, 61], [20, 65], [16, 60]]
+  },
+  {
+    id: 'air-9',
+    callsign: 'MERCY 10',
+    type: 'C-130J',
+    role: 'Relief / logistics',
+    affiliation: 'Humanitarian',
+    regionId: 'east-africa',
+    symbol: 'airliner',
+    altitudeFt: 19000,
+    speedKt: 260,
+    route: [[7, 39], [11, 42], [13, 46], [8, 44]]
+  },
+  {
+    id: 'air-10',
+    callsign: 'RAVEN 21',
+    type: 'MQ-9 tasking',
+    role: 'ISR',
+    affiliation: 'Coalition',
+    regionId: 'east-africa',
+    symbol: 'awacs',
+    altitudeFt: 24000,
+    speedKt: 180,
+    route: [[8, 40], [9, 44], [12, 43], [11, 39]]
+  }
+].map((aircraft, index) => ({
+  ...aircraft,
+  t: (index + 1) * 0.11,
+  lat: aircraft.route[0][0],
+  lng: aircraft.route[0][1],
+  heading: 0,
+  altitude: 0.018
+}));
+
+const SATELLITES = [
+  { id: 'sat-1', name: 'ISR LEO-01', type: 'Imaging', mission: 'Electro-optical ISR', family: 'LEO', altitudeKm: 540, inclination: 51, periodMs: 16000, phase: 0.1, lngBias: -20, color: 'amber' },
+  { id: 'sat-2', name: 'SAR LEO-04', type: 'Radar', mission: 'Synthetic aperture revisit', family: 'LEO', altitudeKm: 620, inclination: 97, periodMs: 18000, phase: 1.1, lngBias: 48, color: 'amber' },
+  { id: 'sat-3', name: 'NAV MEO-12', type: 'Navigation', mission: 'Regional PNT support', family: 'MEO', altitudeKm: 20200, inclination: 55, periodMs: 32000, phase: 2.4, lngBias: 12, color: 'amber' },
+  { id: 'sat-4', name: 'COMMS GEO-07', type: 'Comms relay', mission: 'Persistent relay', family: 'GEO visualized', altitudeKm: 35786, inclination: 4, periodMs: 42000, phase: 0.5, lngBias: 72, color: 'amber' },
+  { id: 'sat-5', name: 'SIGINT LEO-09', type: 'Signals', mission: 'Emitter mapping', family: 'LEO', altitudeKm: 560, inclination: 63, periodMs: 17500, phase: 3.1, lngBias: -90, color: 'amber' },
+  { id: 'sat-6', name: 'Weather MEO-02', type: 'Weather', mission: 'Broad-area forecasting', family: 'MEO', altitudeKm: 12000, inclination: 45, periodMs: 26000, phase: 4.0, lngBias: 110, color: 'amber' }
+].map((sat, index) => ({
+  ...sat,
+  altitude: sat.family === 'GEO visualized' ? 0.11 : sat.family === 'MEO' ? 0.08 : 0.045,
+  lat: 0,
+  lng: 0,
+  heading: 0,
+  t: index / 6
+}));
+
+const layerState = {
+  regions: true,
+  aircraft: true,
+  satellites: true,
+  conflicts: true,
+  ew: true
 };
 
-const dom = {
-  siteTitle: document.getElementById('siteTitle'),
-  siteTagline: document.getElementById('siteTagline'),
-  utcClock: document.getElementById('utcClock'),
-  regionPill: document.getElementById('regionPill'),
-  aircraftCount: document.getElementById('aircraftCount'),
-  satelliteCount: document.getElementById('satelliteCount'),
-  conflictCount: document.getElementById('conflictCount'),
-  ewCount: document.getElementById('ewCount'),
-  opsStatusText: document.getElementById('opsStatusText'),
-  threatScore: document.getElementById('threatScore'),
-  threatSummary: document.getElementById('threatSummary'),
-  refreshIntelBtn: document.getElementById('refreshIntelBtn'),
-  refreshTracksBtn: document.getElementById('refreshTracksBtn'),
-  spinToggleBtn: document.getElementById('spinToggleBtn'),
-  ambienceBtn: document.getElementById('ambienceBtn'),
-  regionButtons: document.getElementById('regionButtons'),
-  layerButtons: document.getElementById('layerButtons'),
-  categoryButtons: document.getElementById('categoryButtons'),
-  topicForm: document.getElementById('topicForm'),
-  topicInput: document.getElementById('topicInput'),
-  briefTitle: document.getElementById('briefTitle'),
-  briefBadge: document.getElementById('briefBadge'),
-  briefTimestamp: document.getElementById('briefTimestamp'),
-  briefPanel: document.getElementById('briefPanel'),
-  telemetryPanel: document.getElementById('telemetryPanel'),
-  selectedKindBadge: document.getElementById('selectedKindBadge'),
-  aircraftRoster: document.getElementById('aircraftRoster'),
-  satelliteRoster: document.getElementById('satelliteRoster'),
-  conflictList: document.getElementById('conflictList'),
-  ewList: document.getElementById('ewList'),
-  feedTitle: document.getElementById('feedTitle'),
-  feedSubtitle: document.getElementById('feedSubtitle'),
-  status: document.getElementById('status'),
-  results: document.getElementById('results'),
-  airModeBadge: document.getElementById('airModeBadge'),
-  airRosterMode: document.getElementById('airRosterMode'),
-  tabButtons: document.getElementById('tabButtons')
-};
+let activeRegionId = 'global';
+let activeTab = 'air';
+let selectedItem = null;
+let globe;
 
-boot();
+const globeEl = document.getElementById('globeViz');
+const mapPopupEl = document.getElementById('mapPopup');
+const utcClockEl = document.getElementById('utcClock');
+const focusPillEl = document.getElementById('focusPill');
+const regionChipsEl = document.getElementById('regionChips');
+const briefTitleEl = document.getElementById('briefTitle');
+const severityChipEl = document.getElementById('severityChip');
+const briefSummaryEl = document.getElementById('briefSummary');
+const aviationTextEl = document.getElementById('aviationText');
+const defenseTextEl = document.getElementById('defenseText');
+const watchListEl = document.getElementById('watchList');
+const pressureListEl = document.getElementById('pressureList');
+const selectedTitleEl = document.getElementById('selectedTitle');
+const selectedKindEl = document.getElementById('selectedKind');
+const selectedBodyEl = document.getElementById('selectedBody');
+const aircraftListEl = document.getElementById('aircraftList');
+const satelliteListEl = document.getElementById('satelliteList');
+const conflictListEl = document.getElementById('conflictList');
+const ewListEl = document.getElementById('ewList');
+const aircraftCountEl = document.getElementById('aircraftCount');
+const satelliteCountEl = document.getElementById('satelliteCount');
+const conflictCountEl = document.getElementById('conflictCount');
+const ewCountEl = document.getElementById('ewCount');
+const trackStatusEl = document.getElementById('trackStatus');
 
-function boot() {
-  dom.siteTitle.textContent = SITE.title;
-  dom.siteTagline.textContent = SITE.tagline;
+function init() {
+  document.title = SITE.title;
+  document.querySelector('.brand-block h1').textContent = SITE.title;
+  document.querySelector('.brand-block p').textContent = SITE.tagline;
 
-  buildRegionButtons();
-  buildLayerButtons();
-  buildCategoryButtons();
-  renderHotspotLists();
-  attachTabEvents();
-  switchTab('brief');
-  startClock();
-  bootGlobe();
-  attachEvents();
+  buildGlobe();
+  buildRegionChips();
+  buildTabs();
+  buildLayerToggles();
+  renderBrief(getActiveRegion());
+  renderSideLists();
+  renderSelected(null);
+  startClocks();
+  startAircraftAnimation();
+  startSatelliteAnimation();
+  renderGlobeObjects();
 
-  selectRegion(REGIONS[0]);
-  loadSatelliteCatalog(false);
-  startSatelliteLoop();
-}
-
-function attachEvents() {
-  dom.refreshIntelBtn.addEventListener('click', () => {
-    fetchIntel(state.currentSelection.query, state.currentSelection.label, state.currentSelection.id);
+  document.getElementById('resetViewBtn').addEventListener('click', () => {
+    hidePopup();
+    const region = getActiveRegion();
+    focusRegion(region);
   });
-
-  dom.refreshTracksBtn.addEventListener('click', () => {
-    refreshAirPicture(true);
-    loadSatelliteCatalog(true);
-  });
-
-  dom.spinToggleBtn.addEventListener('click', toggleFreeSpin);
-  dom.ambienceBtn.addEventListener('click', toggleAmbience);
-
-  dom.topicForm.addEventListener('submit', event => {
-    event.preventDefault();
-    const value = dom.topicInput.value.trim();
-    if (!value) {
-      setFeedStatus('Type a tasking query first.', true);
-      return;
-    }
-    activateCategoryButton('');
-    state.currentSelection = { id: slugify(value), label: `Tasking: ${value}`, query: value, type: 'custom' };
-    fetchIntel(value, `Tasking: ${value}`, slugify(value));
-  });
-}
-
-function buildRegionButtons() {
-  dom.regionButtons.innerHTML = '';
-  REGIONS.forEach(region => {
-    const btn = document.createElement('button');
-    btn.className = 'mini-btn';
-    btn.dataset.selectionId = region.id;
-    btn.textContent = region.label;
-    btn.addEventListener('click', () => selectRegion(region));
-    dom.regionButtons.appendChild(btn);
-  });
-}
-
-function buildLayerButtons() {
-  dom.layerButtons.innerHTML = '';
-  LAYERS.forEach(layer => {
-    const btn = document.createElement('button');
-    btn.className = 'toggle-btn active';
-    btn.dataset.layerId = layer.id;
-    btn.textContent = layer.label;
-    btn.addEventListener('click', () => toggleLayer(layer.id));
-    dom.layerButtons.appendChild(btn);
-  });
-}
-
-function buildCategoryButtons() {
-  dom.categoryButtons.innerHTML = '';
-  CATEGORIES.forEach(category => {
-    const btn = document.createElement('button');
-    btn.className = 'mini-btn';
-    btn.dataset.selectionId = category.id;
-    btn.textContent = category.label;
-    btn.addEventListener('click', () => {
-      activateCategoryButton(category.id);
-      state.currentSelection = { id: category.id, label: `Filter: ${category.label}`, query: category.query, type: 'filter' };
-      fetchIntel(category.query, `Filter: ${category.label}`, category.id);
-    });
-    dom.categoryButtons.appendChild(btn);
-  });
-}
-
-
-function attachTabEvents() {
-  dom.tabButtons?.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-  });
-}
-
-function switchTab(tab) {
-  state.activeTab = tab;
-  dom.tabButtons?.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-  document.querySelectorAll('[data-tab-panel]').forEach(panel => {
-    panel.classList.toggle('active', panel.dataset.tabPanel === tab);
-  });
-}
-
-function toggleFreeSpin() {
-  state.freeSpin = !state.freeSpin;
-  if (state.globe?.controls()) {
-    state.globe.controls().autoRotate = state.freeSpin;
-  }
-  dom.spinToggleBtn.textContent = `Free spin: ${state.freeSpin ? 'on' : 'off'}`;
-  setOpsStatus(state.freeSpin ? 'Free spin enabled. Manual drag still works.' : 'Free spin disabled. Globe now stays put until you move it.');
-}
-
-function renderHotspotLists() {
-  renderConflictList();
-  renderEwList();
-}
-
-function renderConflictList() {
-  const items = HOTSPOTS.filter(item => item.kind === 'conflict');
-  dom.conflictList.innerHTML = '';
-  items.forEach(item => {
-    const card = hotspotCard(item, 'conflict');
-    dom.conflictList.appendChild(card);
-  });
-}
-
-function renderEwList() {
-  const items = HOTSPOTS.filter(item => item.kind === 'ew');
-  dom.ewList.innerHTML = '';
-  items.forEach(item => {
-    const card = hotspotCard(item, 'ew');
-    dom.ewList.appendChild(card);
-  });
-}
-
-function hotspotCard(item, tone) {
-  const card = document.createElement('div');
-  card.className = 'hotspot-item';
-  card.innerHTML = `
-    <div class="hotspot-top">
-      <div class="roster-left">
-        <div class="icon-chip ${tone}">${tone === 'ew' ? MARKER_GLYPHS.ew : MARKER_GLYPHS.conflict}</div>
-        <div>
-          <div class="item-title">${escapeHtml(item.label)}</div>
-          <div class="item-sub">${escapeHtml(item.actors)}</div>
-        </div>
-      </div>
-      <div class="item-badge ${tone === 'ew' ? 'danger' : 'warn'}">SEV-${item.severity}</div>
-    </div>
-    <div class="hotspot-copy">${escapeHtml(item.summary)} ${escapeHtml(item.watch)}</div>
-  `;
-  card.addEventListener('click', () => selectObject(item));
-  return card;
-}
-
-function startClock() {
-  const tick = () => {
-    dom.utcClock.textContent = new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      timeZone: 'UTC'
-    }).format(new Date());
-  };
-
-  tick();
-  window.setInterval(tick, 1000);
-}
-
-function bootGlobe() {
-  const container = document.getElementById('globeViz');
-  state.globe = GlobeFactory({ rendererConfig: { antialias: true, alpha: true } })(container)
-    .globeImageUrl('earth-blue-marble.jpg')
-    .bumpImageUrl('earth-topology.png')
-    .backgroundImageUrl('night-sky.png')
-    .showAtmosphere(true)
-    .atmosphereColor('#67ceff')
-    .atmosphereAltitude(0.15)
-    .pointLabel(buildPointLabel)
-    .pointColor(point => point.color)
-    .pointAltitude(point => point.altitude ?? 0.02)
-    .pointRadius(point => point.radius ?? 0.18)
-    .onPointClick(point => {
-      if (point.kind === 'region') {
-        const region = REGIONS.find(regionItem => regionItem.id === point.id);
-        if (region) selectRegion(region);
-        return;
-      }
-      selectObject(point);
-    })
-    .htmlElementsData([])
-    .htmlLat(item => item.lat)
-    .htmlLng(item => item.lng)
-    .htmlAltitude(item => item.visualAltitude ?? 0.01)
-    .htmlElement(buildHtmlMarker)
-    .arcsData([])
-    .arcColor(arc => arc.color || '#74d3ff')
-    .arcStroke(arc => arc.stroke ?? 0.55)
-    .arcAltitude(arc => arc.altitude ?? 0.08)
-    .arcDashLength(0.36)
-    .arcDashGap(1.2)
-    .arcDashAnimateTime(2800)
-    .pathsData([])
-    .pathColor(path => path.color || '#ffcd63')
-    .pathStroke(path => path.stroke ?? 0.65)
-    .pathDashLength(0.18)
-    .pathDashGap(0.06)
-    .pathDashAnimateTime(3400)
-    .ringsData([])
-    .ringMaxRadius(ring => ring.maxR)
-    .ringPropagationSpeed(ring => ring.propagationSpeed)
-    .ringRepeatPeriod(ring => ring.repeatPeriod)
-    .ringColor(ring => ring.color)
-    .width(container.clientWidth)
-    .height(container.clientHeight);
-
-  const controls = state.globe.controls();
-  controls.autoRotate = false;
-  controls.autoRotateSpeed = 0.14;
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.enablePan = false;
-  controls.minDistance = 115;
-  controls.maxDistance = 420;
-  controls.rotateSpeed = 0.7;
-  controls.zoomSpeed = 0.8;
-
-  const renderer = state.globe.renderer?.();
-  renderer?.setPixelRatio?.(Math.min(2.25, window.devicePixelRatio || 1));
-
-  try {
-    const material = state.globe.globeMaterial?.();
-    if (material) {
-      material.bumpScale = 7;
-      material.shininess = 12;
-    }
-  } catch (error) {
-    console.warn('globe material tuning skipped', error);
-  }
 
   window.addEventListener('resize', () => {
-    state.globe.width(container.clientWidth);
-    state.globe.height(container.clientHeight);
-    state.globe.renderer?.()?.setPixelRatio?.(Math.min(2, window.devicePixelRatio || 1));
-  });
-}
-
-function buildPointLabel(point) {
-  const title = escapeHtml(point.label || point.name || point.callsign || 'Object');
-  if (point.kind === 'region') return `${title}<br/>Tap for regional brief`;
-  if (point.kind === 'conflict') return `${title}<br/>Conflict hotspot`;
-  if (point.kind === 'ew') return `${title}<br/>Reported GNSS / EW disruption`;
-  return title;
-}
-
-function buildHtmlMarker(item) {
-  const marker = document.createElement('div');
-  marker.className = `marker marker-${item.kind} ${state.selectedMarkerId === item.id ? 'is-selected' : ''}`;
-  marker.style.setProperty('--marker-rotation', `${Math.round(item.heading || 0)}deg`);
-  marker.title = item.label || item.name || item.callsign || '';
-
-  const shell = document.createElement('div');
-  shell.className = 'marker-shell';
-
-  const glyph = document.createElement('div');
-  glyph.className = 'marker-glyph';
-  glyph.innerHTML = buildMarkerGlyph(item);
-  shell.appendChild(glyph);
-  marker.appendChild(shell);
-
-  if (item.labelText) {
-    const label = document.createElement('div');
-    label.className = 'marker-label';
-    label.textContent = item.labelText;
-    marker.appendChild(label);
-  }
-
-  if (state.selectedMarkerId === item.id) {
-    marker.appendChild(buildMarkerPopup(item));
-  }
-
-  marker.addEventListener('click', event => {
-    event.stopPropagation();
-    if (item.kind === 'region') {
-      const region = REGIONS.find(regionItem => regionItem.id === item.id);
-      if (region) selectRegion(region);
-      return;
+    hidePopup();
+    if (globe && globe.renderer) {
+      try {
+        globe.width(globeEl.clientWidth);
+        globe.height(globeEl.clientHeight);
+      } catch (err) {
+        // ignore resize issues on mobile browsers
+      }
     }
-    selectObject(item);
   });
-
-  return marker;
 }
 
-function buildMarkerGlyph(item) {
-  if (item.kind === 'aircraft') return MARKER_GLYPHS[item.aircraftVisual] || MARKER_GLYPHS.airliner;
-  if (item.kind === 'satellite') return MARKER_GLYPHS.satellite;
-  if (item.kind === 'conflict') return MARKER_GLYPHS.conflict;
-  if (item.kind === 'ew') return MARKER_GLYPHS.ew;
-  return MARKER_GLYPHS.region;
+function buildGlobe() {
+  globe = GlobeFactory()(globeEl)
+    .globeImageUrl('earth-hires.jpg')
+    .bumpImageUrl('earth-bump.png')
+    .backgroundImageUrl('stars-bg.png')
+    .showAtmosphere(true)
+    .atmosphereColor('#5eb4ff')
+    .atmosphereAltitude(0.16)
+    .showGraticules(false)
+    .htmlTransitionDuration(0)
+    .pointOfView({ lat: 20, lng: 10, altitude: 2.05 }, 0)
+    .onGlobeClick(() => hidePopup());
+
+  try {
+    globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  } catch (err) {
+    // ignore
+  }
+
+  try {
+    const controls = globe.controls();
+    controls.autoRotate = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.rotateSpeed = 0.55;
+    controls.zoomSpeed = 0.9;
+    controls.minDistance = 140;
+    controls.maxDistance = 360;
+  } catch (err) {
+    // ignore controls setup if unavailable
+  }
 }
 
-function buildHeroVisual(kindKey) {
-  return `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">${buildMarkerGlyph({ kind: kindKey === 'region' ? 'region' : kindKey === 'satellite' ? 'satellite' : kindKey === 'conflict' ? 'conflict' : kindKey === 'ew' ? 'ew' : 'aircraft', aircraftVisual: kindKey })}</svg>`;
+function buildRegionChips() {
+  regionChipsEl.innerHTML = '';
+  REGIONS.forEach(region => {
+    const btn = document.createElement('button');
+    btn.className = `region-chip ${region.id === activeRegionId ? 'active' : ''}`;
+    btn.textContent = region.name;
+    btn.addEventListener('click', () => {
+      activeRegionId = region.id;
+      syncRegionChipState();
+      renderBrief(region);
+      renderSideLists();
+      focusRegion(region);
+      renderGlobeObjects();
+      renderSelected({ kind: 'Region', ...region });
+    });
+    regionChipsEl.appendChild(btn);
+  });
 }
 
-function buildMarkerPopup(item) {
-  const popup = document.createElement('div');
-  popup.className = `marker-popup ${markerPopupSideClass(item)}`;
+function syncRegionChipState() {
+  [...regionChipsEl.children].forEach((chip, index) => {
+    chip.classList.toggle('active', REGIONS[index].id === activeRegionId);
+  });
+  focusPillEl.textContent = getActiveRegion().name;
+}
 
-  if (item.kind === 'aircraft') {
-    popup.innerHTML = `
-      <div class="popup-topline">
-        <div class="popup-type">Aircraft</div>
-        <div class="popup-badge">${escapeHtml(state.aircraftMode === 'live' ? 'track' : 'fused')}</div>
-      </div>
-      <div class="popup-title">${escapeHtml(item.callsign)}</div>
-      <div class="popup-copy">${escapeHtml(item.aircraftTypeLabel)} over ${escapeHtml(item.country)}.</div>
-      <div class="popup-grid">
-        <div class="popup-stat"><span>Alt</span><strong>${escapeHtml(formatFeet(item.altFeet))}</strong></div>
-        <div class="popup-stat"><span>Speed</span><strong>${escapeHtml(formatKts(item.speedKts))}</strong></div>
-        <div class="popup-stat"><span>Heading</span><strong>${escapeHtml(String(Math.round(item.heading || 0)).padStart(3, '0'))}°</strong></div>
-        <div class="popup-stat"><span>V-Rate</span><strong>${escapeHtml(formatFpm(item.verticalRateFpm))}</strong></div>
-      </div>
-    `;
-    return popup;
+function buildTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(other => other.classList.toggle('active', other === btn));
+      document.querySelectorAll('[data-tab-panel]').forEach(panel => {
+        panel.classList.toggle('active', panel.dataset.tabPanel === activeTab);
+      });
+    });
+  });
+}
+
+function buildLayerToggles() {
+  document.querySelectorAll('.toolbar-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.layer;
+      layerState[key] = !layerState[key];
+      btn.classList.toggle('active', layerState[key]);
+      renderGlobeObjects();
+    });
+  });
+}
+
+function getActiveRegion() {
+  return REGIONS.find(r => r.id === activeRegionId) || REGIONS[0];
+}
+
+function renderBrief(region) {
+  briefTitleEl.textContent = region.name;
+  severityChipEl.textContent = region.severity;
+  briefSummaryEl.textContent = region.summary;
+  aviationTextEl.textContent = region.aviation;
+  defenseTextEl.textContent = region.defense;
+  watchListEl.innerHTML = region.watch.map(item => `<li>${item}</li>`).join('');
+  pressureListEl.innerHTML = region.pressure.map(item => `<li>${item}</li>`).join('');
+  focusPillEl.textContent = region.name;
+}
+
+function getVisibleAircraft() {
+  if (activeRegionId === 'global') return AIRCRAFT;
+  return AIRCRAFT.filter(a => a.regionId === activeRegionId);
+}
+
+function getVisibleConflicts() {
+  if (activeRegionId === 'global') return CONFLICTS;
+  return CONFLICTS.filter(item => item.regionId === activeRegionId);
+}
+
+function getVisibleEW() {
+  if (activeRegionId === 'global') return EW_ZONES;
+  return EW_ZONES.filter(item => item.regionId === activeRegionId);
+}
+
+function getVisibleSatellites() {
+  return SATELLITES;
+}
+
+function renderSideLists() {
+  const aircraft = getVisibleAircraft();
+  const satellites = getVisibleSatellites();
+  const conflicts = getVisibleConflicts();
+  const ew = getVisibleEW();
+
+  aircraftCountEl.textContent = aircraft.length;
+  satelliteCountEl.textContent = satellites.length;
+  conflictCountEl.textContent = conflicts.length;
+  ewCountEl.textContent = ew.length;
+  trackStatusEl.textContent = 'Live sim';
+
+  aircraftListEl.innerHTML = aircraft.map(item => objectRowTemplate(item, 'aircraft')).join('');
+  satelliteListEl.innerHTML = satellites.map(item => objectRowTemplate(item, 'satellite')).join('');
+  conflictListEl.innerHTML = conflicts.map(item => objectRowTemplate(item, 'conflict')).join('');
+  ewListEl.innerHTML = ew.map(item => objectRowTemplate(item, 'ew')).join('');
+
+  wireObjectRows(aircraftListEl, aircraft, 'aircraft');
+  wireObjectRows(satelliteListEl, satellites, 'satellite');
+  wireObjectRows(conflictListEl, conflicts, 'conflict');
+  wireObjectRows(ewListEl, ew, 'ew');
+}
+
+function objectRowTemplate(item, type) {
+  const name = item.callsign || item.name;
+  let meta = '';
+  if (type === 'aircraft') {
+    meta = `${item.type} • ${item.role} • FL${Math.round(item.altitudeFt / 100)}`;
+  } else if (type === 'satellite') {
+    meta = `${item.type} • ${item.family} • ${item.altitudeKm.toLocaleString()} km`;
+  } else {
+    meta = `${item.severity} • ${getRegionName(item.regionId)}`;
   }
 
-  if (item.kind === 'satellite') {
-    popup.innerHTML = `
-      <div class="popup-topline">
-        <div class="popup-type">Satellite</div>
-        <div class="popup-badge">${escapeHtml(item.groupLabel)}</div>
+  return `
+    <button class="object-row ${isSelected(item) ? 'active' : ''}" data-id="${item.id}" data-type="${type}">
+      <div class="object-topline">
+        <div class="object-name">${name}</div>
+        <div class="object-type">${type === 'aircraft' ? item.affiliation || '' : type === 'satellite' ? item.mission || '' : item.type}</div>
       </div>
-      <div class="popup-title">${escapeHtml(trimText(item.name, 24))}</div>
-      <div class="popup-copy">Public TLE-propagated orbital track.</div>
-      <div class="popup-grid">
-        <div class="popup-stat"><span>Alt</span><strong>${escapeHtml(formatKm(item.altKm))}</strong></div>
-        <div class="popup-stat"><span>Lat</span><strong>${escapeHtml(item.lat.toFixed(1))}°</strong></div>
-        <div class="popup-stat"><span>Lon</span><strong>${escapeHtml(item.lng.toFixed(1))}°</strong></div>
-        <div class="popup-stat"><span>Mode</span><strong>Track</strong></div>
-      </div>
-    `;
-    return popup;
+      <div class="object-meta">${meta}</div>
+    </button>
+  `;
+}
+
+function wireObjectRows(container, items, type) {
+  [...container.querySelectorAll('.object-row')].forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = items.find(entry => entry.id === btn.dataset.id);
+      if (!item) return;
+      selectItem(type, item);
+    });
+  });
+}
+
+function selectItem(type, item, targetEl) {
+  if (type === 'aircraft') {
+    renderSelected({ kind: 'Aircraft', ...item });
+    focusTrack(item.lat, item.lng, 0.78);
+    openPopup(type, item, targetEl);
+  } else if (type === 'satellite') {
+    renderSelected({ kind: 'Satellite', ...item });
+    focusTrack(item.lat, item.lng, 0.94);
+    openPopup(type, item, targetEl);
+  } else if (type === 'conflict') {
+    renderSelected({ kind: 'Conflict', ...item });
+    focusTrack(item.lat, item.lng, 1.0);
+    openPopup(type, item, targetEl);
+  } else if (type === 'ew') {
+    renderSelected({ kind: 'GNSS / EW', ...item });
+    focusTrack(item.lat, item.lng, 1.0);
+    openPopup(type, item, targetEl);
+  } else if (type === 'region') {
+    activeRegionId = item.id;
+    syncRegionChipState();
+    renderBrief(item);
+    renderSelected({ kind: 'Region', ...item });
+    focusRegion(item);
+    renderGlobeObjects();
+    openPopup(type, item, targetEl);
+  }
+  renderSideLists();
+}
+
+function renderSelected(item) {
+  selectedItem = item;
+  if (!item) {
+    selectedTitleEl.textContent = 'Nothing selected';
+    selectedKindEl.textContent = 'Ready';
+    selectedBodyEl.textContent = 'Tap a region, aircraft, satellite, conflict marker, or GNSS / EW zone.';
+    return;
   }
 
-  if (item.kind === 'conflict' || item.kind === 'ew') {
-    popup.innerHTML = `
-      <div class="popup-topline">
-        <div class="popup-type">${escapeHtml(item.kind === 'conflict' ? 'Conflict' : 'GNSS / EW')}</div>
-        <div class="popup-badge">SEV-${escapeHtml(item.severity)}</div>
-      </div>
-      <div class="popup-title">${escapeHtml(item.label)}</div>
-      <div class="popup-copy">${escapeHtml(trimText(item.summary, 120))}</div>
-      <div class="popup-grid">
-        <div class="popup-stat"><span>Watch</span><strong>${escapeHtml(trimText(item.watch, 32))}</strong></div>
-        <div class="popup-stat"><span>Layer</span><strong>${escapeHtml(item.kind === 'conflict' ? 'Hotspot' : 'Disruption')}</strong></div>
+  selectedTitleEl.textContent = item.callsign || item.name;
+  selectedKindEl.textContent = item.kind;
+
+  if (item.kind === 'Region') {
+    selectedBodyEl.innerHTML = `
+      <div class="selected-grid">
+        <div>${item.summary}</div>
+        <div class="data-grid">
+          <div class="data-cell"><span>Severity</span>${item.severity}</div>
+          <div class="data-cell"><span>Focus area</span>${item.name}</div>
+        </div>
       </div>
     `;
-    return popup;
+    return;
   }
 
-  const region = REGIONS.find(regionItem => regionItem.id === item.id) || item;
-  popup.innerHTML = `
-    <div class="popup-topline">
-      <div class="popup-type">Region</div>
-      <div class="popup-badge">${escapeHtml(riskLabel(computeThreatScore(region, getRegionalHotspots(region), state.stories, state.aircraft, state.satPoints)).toUpperCase())}</div>
-    </div>
-    <div class="popup-title">${escapeHtml(region.label)}</div>
-    <div class="popup-copy">${escapeHtml(trimText(region.theme || 'Regional focus.', 120))}</div>
-    <div class="popup-grid">
-      <div class="popup-stat"><span>Conflicts</span><strong>${escapeHtml(String(getRegionalHotspots(region).filter(entry => entry.kind === 'conflict').length))}</strong></div>
-      <div class="popup-stat"><span>EW</span><strong>${escapeHtml(String(getRegionalHotspots(region).filter(entry => entry.kind === 'ew').length))}</strong></div>
+  if (item.kind === 'Aircraft') {
+    selectedBodyEl.innerHTML = `
+      <div class="selected-grid">
+        <div><strong>${item.type}</strong> • ${item.role} • ${item.affiliation}</div>
+        <div class="data-grid">
+          <div class="data-cell"><span>Altitude</span>${item.altitudeFt.toLocaleString()} ft</div>
+          <div class="data-cell"><span>Speed</span>${item.speedKt} kt</div>
+          <div class="data-cell"><span>Heading</span>${Math.round(item.heading)}°</div>
+          <div class="data-cell"><span>Region</span>${getRegionName(item.regionId)}</div>
+        </div>
+        <div>${item.callsign} is part of the active regional air picture. Use it as a proxy for how patrol, ISR, logistics, or alert posture is layered into the theater.</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (item.kind === 'Satellite') {
+    selectedBodyEl.innerHTML = `
+      <div class="selected-grid">
+        <div><strong>${item.type}</strong> • ${item.mission}</div>
+        <div class="data-grid">
+          <div class="data-cell"><span>Orbit family</span>${item.family}</div>
+          <div class="data-cell"><span>Altitude</span>${item.altitudeKm.toLocaleString()} km</div>
+          <div class="data-cell"><span>Latitude</span>${item.lat.toFixed(1)}°</div>
+          <div class="data-cell"><span>Longitude</span>${item.lng.toFixed(1)}°</div>
+        </div>
+        <div>This orbital track is visualized as part of the watch-floor layer so users can understand what overhead support or visibility might matter to the region.</div>
+      </div>
+    `;
+    return;
+  }
+
+  selectedBodyEl.innerHTML = `
+    <div class="selected-grid">
+      <div>${item.summary}</div>
+      <div class="data-grid">
+        <div class="data-cell"><span>Status</span>${item.severity}</div>
+        <div class="data-cell"><span>Region</span>${getRegionName(item.regionId)}</div>
+      </div>
     </div>
   `;
-  return popup;
 }
 
-function markerPopupSideClass(item) {
-  return item.lng > 40 ? 'popup-left' : '';
+function isSelected(item) {
+  if (!selectedItem) return false;
+  return selectedItem.id === item.id;
 }
 
-function toggleLayer(layerId) {
-  if (layerId === 'regions') state.showRegions = !state.showRegions;
-  if (layerId === 'aircraft') state.showAircraft = !state.showAircraft;
-  if (layerId === 'satellites') state.showSatellites = !state.showSatellites;
-  if (layerId === 'conflicts') state.showConflicts = !state.showConflicts;
-  if (layerId === 'ew') state.showEw = !state.showEw;
-
-  const btn = dom.layerButtons.querySelector(`[data-layer-id="${layerId}"]`);
-  if (btn) btn.classList.toggle('active', isLayerOn(layerId));
-
-  updateGlobe();
-}
-
-function isLayerOn(layerId) {
-  return {
-    regions: state.showRegions,
-    aircraft: state.showAircraft,
-    satellites: state.showSatellites,
-    conflicts: state.showConflicts,
-    ew: state.showEw
-  }[layerId];
-}
-
-function activateRegionButton(selectionId) {
-  document.querySelectorAll('#regionButtons .mini-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.selectionId === selectionId);
-  });
-}
-
-function activateCategoryButton(selectionId) {
-  document.querySelectorAll('#categoryButtons .mini-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.selectionId === selectionId);
-  });
-}
-
-function selectRegion(region) {
-  state.selectedRegion = region;
-  state.currentSelection = {
-    id: region.id,
-    label: region.label,
-    query: region.query,
-    type: 'region'
-  };
-
-  activateRegionButton(region.id);
-  activateCategoryButton('');
-  dom.regionPill.textContent = region.label.toUpperCase();
-  state.selectedMarkerId = region.id;
-  switchTab('brief');
-  focusRegion(region);
-  refreshAirPicture(true);
-  fetchIntel(region.query, region.label, region.id);
-  selectObject(region);
-  updateGlobe();
+function getRegionName(id) {
+  return REGIONS.find(r => r.id === id)?.name || 'Global';
 }
 
 function focusRegion(region) {
-  state.globe?.pointOfView({ lat: region.lat, lng: region.lng, altitude: 1.38 }, 1200);
-}
-
-function selectObject(item) {
-  state.selectedObject = item;
-  state.selectedMarkerId = item.id;
-
-  if (item.kind === 'satellite') {
-    switchTab('space');
-  } else if (item.kind === 'aircraft') {
-    switchTab('air');
-  } else if (item.kind === 'conflict' || item.kind === 'ew') {
-    switchTab('watch');
-  } else {
-    switchTab('brief');
-  }
-
-  renderTelemetry(item);
-  if (item.kind === 'satellite') {
-    state.selectedSatellitePath = buildSatellitePath(item);
-  } else {
-    state.selectedSatellitePath = [];
-  }
-  updateBrief();
-  updateGlobe();
-}
-
-
-async function fetchIntel(query, label, selectionId) {
-  dom.feedTitle.textContent = `${label} evidence feed`;
-  dom.feedSubtitle.textContent = 'Raw source titles and metadata used to shape the executive brief.';
-  setFeedStatus('Pulling source feed...');
-  dom.results.innerHTML = '';
-
-  const url = new URL('https://api.gdeltproject.org/api/v2/doc/doc');
-  url.searchParams.set('query', query);
-  url.searchParams.set('mode', 'artlist');
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('sort', 'datedesc');
-  url.searchParams.set('timespan', '18h');
-  url.searchParams.set('maxrecords', '10');
-
-  try {
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    state.stories = data.articles || data.article || data.results || [];
-    renderStories(state.stories);
-    setFeedStatus(`Loaded ${state.stories.length} source items.`);
-  } catch (error) {
-    console.error(error);
-    state.stories = [];
-    renderStories([]);
-    setFeedStatus('Source feed failed. Brief will lean harder on built-in conflict and EW watch data.', true);
-  }
-
-  updateBrief();
-  if (selectionId && CATEGORIES.some(category => category.id === selectionId)) {
-    activateCategoryButton(selectionId);
-  } else if (selectionId && REGIONS.some(region => region.id === selectionId)) {
-    activateRegionButton(selectionId);
+  focusPillEl.textContent = region.name;
+  if (globe) {
+    globe.pointOfView({ lat: region.lat, lng: region.lng, altitude: region.altitude }, 900);
   }
 }
 
-function renderStories(items) {
-  dom.results.innerHTML = '';
-  if (!items.length) {
-    dom.results.innerHTML = `
-      <div class="story">
-        <div class="story-title">No fresh feed items returned.</div>
-        <div class="story-copy">The brief is still built from your current region, conflict watch list, and EW layer.</div>
-      </div>
-    `;
+function focusTrack(lat, lng, altitude) {
+  if (globe) {
+    globe.pointOfView({ lat, lng, altitude }, 900);
+  }
+}
+
+function renderGlobeObjects() {
+  const htmlObjects = [];
+
+  if (layerState.regions) {
+    const regionObjects = REGIONS.filter(region => region.id !== 'global').map(region => ({ ...region, markerType: 'region' }));
+    htmlObjects.push(...regionObjects);
+  }
+
+  if (layerState.aircraft) {
+    htmlObjects.push(...getVisibleAircraft().map(item => ({ ...item, markerType: 'aircraft' })));
+  }
+
+  if (layerState.satellites) {
+    htmlObjects.push(...getVisibleSatellites().map(item => ({ ...item, markerType: 'satellite' })));
+  }
+
+  if (layerState.conflicts) {
+    htmlObjects.push(...getVisibleConflicts().map(item => ({ ...item, markerType: 'conflict', altitude: 0.015 })));
+  }
+
+  if (layerState.ew) {
+    htmlObjects.push(...getVisibleEW().map(item => ({ ...item, markerType: 'ew', altitude: 0.015 })));
+  }
+
+  globe
+    .htmlElementsData(htmlObjects)
+    .htmlLat(d => d.lat)
+    .htmlLng(d => d.lng)
+    .htmlAltitude(d => d.altitude || 0.02)
+    .htmlElement(d => createMarker(d));
+
+  const rings = [
+    ...(layerState.conflicts ? getVisibleConflicts().map(item => ({ ...item, ringColor: () => ['rgba(255,143,112,0.26)', 'rgba(255,143,112,0)'], maxR: 3.4 })) : []),
+    ...(layerState.ew ? getVisibleEW().map(item => ({ ...item, ringColor: () => ['rgba(255,107,107,0.24)', 'rgba(255,107,107,0)'], maxR: 2.8 })) : [])
+  ];
+
+  globe
+    .ringsData(rings)
+    .ringLat(d => d.lat)
+    .ringLng(d => d.lng)
+    .ringColor(d => d.ringColor())
+    .ringMaxRadius(d => d.maxR)
+    .ringPropagationSpeed(0.95)
+    .ringRepeatPeriod(1300);
+}
+
+function createMarker(data) {
+  const el = document.createElement('div');
+  el.className = markerClassName(data);
+  el.innerHTML = markerInnerHtml(data);
+  el.addEventListener('click', event => {
+    event.stopPropagation();
+    if (data.markerType === 'region') selectItem('region', data, el);
+    if (data.markerType === 'aircraft') selectItem('aircraft', data, el);
+    if (data.markerType === 'satellite') selectItem('satellite', data, el);
+    if (data.markerType === 'conflict') selectItem('conflict', data, el);
+    if (data.markerType === 'ew') selectItem('ew', data, el);
+  });
+  return el;
+}
+
+function markerClassName(data) {
+  if (data.markerType === 'region') return 'marker marker-region';
+  if (data.markerType === 'aircraft') return 'marker marker-air';
+  if (data.markerType === 'satellite') return 'marker marker-space';
+  if (data.markerType === 'conflict') return 'marker marker-conflict';
+  return 'marker marker-ew';
+}
+
+function markerInnerHtml(data) {
+  if (data.markerType === 'aircraft') return PLANE_SVGS[data.symbol] || PLANE_SVGS.airliner;
+  if (data.markerType === 'satellite') return SAT_SVG;
+  return '';
+}
+
+function openPopup(type, item, anchorEl) {
+  if (!anchorEl) {
+    hidePopup();
     return;
   }
 
-  items.forEach(item => {
-    const card = document.createElement('a');
-    card.className = 'story';
-    card.href = item.url || item.domain || '#';
-    card.target = '_blank';
-    card.rel = 'noreferrer noopener';
+  const containerRect = globeEl.getBoundingClientRect();
+  const anchorRect = anchorEl.getBoundingClientRect();
+  let left = anchorRect.left - containerRect.left + anchorRect.width + 10;
+  let top = anchorRect.top - containerRect.top - 12;
 
-    const domain = safeUrlDomain(item.url || item.domain || 'Unknown source');
-    const timeLabel = item.seendate || item.date || 'Recent';
-
-    card.innerHTML = `
-      <div class="story-title">${escapeHtml(item.title || 'Untitled source')}</div>
-      <div class="story-copy">${escapeHtml(trimText(item.socialimage ? 'Image-linked source item in feed.' : 'Open source reporting item feeding the brief.', 160))}</div>
-      <div class="story-meta">
-        <span>${escapeHtml(domain)}</span>
-        <span>${escapeHtml(timeLabel)}</span>
-      </div>
-    `;
-
-    dom.results.appendChild(card);
-  });
-}
-
-function updateBrief() {
-  const region = state.selectedRegion;
-  const regionalHotspots = getRegionalHotspots(region);
-  const riskScore = computeThreatScore(region, regionalHotspots, state.stories, state.aircraft, state.satPoints);
-  const keywordSummary = summarizeKeywords(state.stories);
-  const theme = region.theme;
-  const watchBullets = buildWatchBullets(region, regionalHotspots, keywordSummary, state.aircraft, state.satPoints);
-  const posture = buildPostureText(region, regionalHotspots, keywordSummary);
-  const sourceNote = state.stories.length
-    ? `${state.stories.length} source item${state.stories.length === 1 ? '' : 's'} in the last 18 hours.`
-    : 'Standing brief mode using built-in watch deck and current tracks.';
-  const airMix = summarizeAircraftMix(state.aircraft);
-  const ewWatch = regionalHotspots.filter(item => item.kind === 'ew').map(item => item.label).join(', ') || 'No major EW hotspot pinned in this region deck.';
-
-  dom.briefTitle.textContent = `Presidential brief // ${region.label}`;
-  dom.briefBadge.textContent = `${riskLabel(riskScore).toUpperCase()} // SEV-${severityFromScore(riskScore)}`;
-  dom.briefTimestamp.textContent = `Updated ${new Date().toUTCString()} // ${sourceNote}`;
-  dom.threatScore.textContent = String(riskScore);
-  dom.threatSummary.textContent = theme;
-
-  dom.briefPanel.innerHTML = `
-    <div class="brief-hero">
-      <div class="brief-kicker">Executive summary</div>
-      <div class="brief-lead">${escapeHtml(region.label)} remains a ${escapeHtml(riskLabel(riskScore).toLowerCase())} watch sector. ${escapeHtml(theme)} ${escapeHtml(posture)}</div>
-    </div>
-    <div class="brief-grid">
-      <div class="brief-block">
-        <div class="brief-block-title">Why it matters</div>
-        <div class="small muted">${escapeHtml(buildAssessmentSentence(region, regionalHotspots, keywordSummary))}</div>
-      </div>
-      <div class="brief-block">
-        <div class="brief-block-title">Air picture</div>
-        <div class="small muted">${escapeHtml(airMix.summary)}</div>
-      </div>
-      <div class="brief-block">
-        <div class="brief-block-title">Conflict drivers</div>
-        <div class="small muted">${escapeHtml(regionalHotspots.filter(item => item.kind === 'conflict').map(item => item.label).join(', ') || 'No curated conflict hotspot currently pinned in this region deck.')}</div>
-      </div>
-      <div class="brief-block">
-        <div class="brief-block-title">EW / access</div>
-        <div class="small muted">${escapeHtml(ewWatch)}</div>
-      </div>
-    </div>
-    <div class="brief-block">
-      <div class="brief-block-title">What to watch next</div>
-      <ul class="brief-bullets">
-        ${watchBullets.map(bullet => `<li>${escapeHtml(bullet)}</li>`).join('')}
-      </ul>
-    </div>
-  `;
-}
-
-
-function buildAssessmentSentence(region, hotspots, keywordSummary) {
-  const severe = hotspots.filter(item => item.severity >= 4);
-  const hotText = severe.length
-    ? `${severe.length} severe hotspot${severe.length > 1 ? 's are' : ' is'} active in this picture, led by ${severe.map(item => item.label).slice(0, 2).join(' and ')}.`
-    : 'No single hotspot dominates the board, but the region still carries elevated operational friction.';
-
-  const wordText = keywordSummary.length
-    ? ` Feed weighting leans toward ${keywordSummary.slice(0, 3).join(', ')}.`
-    : ' Feed weighting is thin, so this brief leans on the built-in watch deck.';
-
-  return `${hotText}${wordText}`;
-}
-
-function buildAirOrbitSentence(aircraft, satellites, mode) {
-  const airModeText = mode === 'live'
-    ? 'Regional air picture is pulling live-compatible state vectors.'
-    : mode === 'sim'
-      ? 'Regional air picture is in simulated fallback mode with animated track cards.'
-      : 'Regional air picture is still warming up.';
-  return `${airModeText} Current board shows ${aircraft.length} aircraft icons and ${satellites.length} satellites in the tracked watchlist.`;
-}
-
-
-function summarizeAircraftMix(aircraft) {
-  if (!aircraft.length) {
-    return { summary: 'No aircraft are loaded for this sector yet.' };
+  if (left + 260 > containerRect.width) {
+    left = anchorRect.left - containerRect.left - 260;
   }
-  const counts = {};
-  aircraft.forEach(item => {
-    counts[item.aircraftTypeLabel] = (counts[item.aircraftTypeLabel] || 0) + 1;
-  });
-  const top = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([label, count]) => `${count}× ${label}`);
-  return {
-    summary: `${state.aircraftMode === 'live' ? 'Live-compatible' : 'Fused fallback'} regional picture shows ${aircraft.length} tracks, led by ${top.join(', ')}.`
-  };
-}
+  if (top < 16) top = 16;
+  if (top + 120 > containerRect.height) top = containerRect.height - 132;
 
-function buildWatchBullets(region, hotspots, keywordSummary, aircraft, satellites) {
-  const bullets = [];
-
-  if (hotspots[0]) bullets.push(`${hotspots[0].label}: ${hotspots[0].watch}`);
-  if (hotspots[1]) bullets.push(`${hotspots[1].label}: ${hotspots[1].summary}`);
-
-  const busiestAircraft = aircraft.slice(0, 2).map(item => `${item.callsign} (${item.aircraftTypeLabel})`).join(' and ');
-  if (busiestAircraft) bullets.push(`Visible air picture includes ${busiestAircraft}; use the flightline for altitude, heading, and source mode.`);
-
-  const satText = satellites.slice(0, 2).map(item => item.name).join(' and ');
-  if (satText) bullets.push(`Orbital watch currently highlights ${satText}; tap either for altitude and future track.`);
-
-  if (keywordSummary[0]) bullets.push(`Source feed emphasis is currently ${keywordSummary.slice(0, 3).join(', ')}.`);
-
-  return bullets.slice(0, 5);
-}
-
-function buildPostureText(region, hotspots, keywordSummary) {
-  const ewCount = hotspots.filter(item => item.kind === 'ew').length;
-  const conflictCount = hotspots.filter(item => item.kind === 'conflict').length;
-  const words = keywordSummary.slice(0, 2).join(' / ');
-  return `Board count for this sector is ${conflictCount} conflict hotspot${conflictCount !== 1 ? 's' : ''} and ${ewCount} GNSS/EW concern${ewCount !== 1 ? 's' : ''}${words ? `, with feed themes clustering around ${words}` : ''}.`;
-}
-
-function computeThreatScore(region, hotspots, stories, aircraft, satellites) {
-  let score = 40;
-  score += hotspots.reduce((sum, item) => sum + item.severity * 4, 0);
-  score += Math.min(stories.length, 10);
-  if (hotspots.some(item => item.kind === 'ew')) score += 6;
-  if (hotspots.some(item => item.kind === 'conflict' && item.severity >= 4)) score += 8;
-  if (aircraft.length >= 10) score += 5;
-  if (satellites.length >= 8) score += 3;
-  if (region.id === 'middle-east') score += 6;
-  return Math.max(25, Math.min(96, score));
-}
-
-function severityFromScore(score) {
-  if (score >= 85) return 5;
-  if (score >= 72) return 4;
-  if (score >= 58) return 3;
-  if (score >= 44) return 2;
-  return 1;
-}
-
-function riskLabel(score) {
-  if (score >= 85) return 'Critical';
-  if (score >= 72) return 'High';
-  if (score >= 58) return 'Elevated';
-  if (score >= 44) return 'Guarded';
-  return 'Baseline';
-}
-
-function summarizeKeywords(items) {
-  if (!items.length) return [];
-  const stop = new Set(['the', 'and', 'with', 'from', 'over', 'into', 'amid', 'after', 'says', 'say', 'its', 'for', 'that', 'this', 'their', 'have', 'has', 'will', 'more', 'than', 'about', 'under', 'around', 'while', 'what', 'where', 'when', 'which', 'into', 'near', 'amid', 'latest', 'live']);
-  const bucket = {};
-
-  items.forEach(item => {
-    const text = `${item.title || ''} ${item.domain || ''}`.toLowerCase();
-    text.replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/).forEach(word => {
-      if (!word || stop.has(word) || word.length < 4) return;
-      bucket[word] = (bucket[word] || 0) + 1;
-    });
-  });
-
-  const priority = ['drone', 'missile', 'shipping', 'ceasefire', 'airstrike', 'gaza', 'iran', 'ukraine', 'russia', 'satellite', 'cyberattack', 'airspace', 'military', 'navy', 'gps', 'jamming', 'spoofing', 'tanker'];
-  const manual = priority.filter(word => bucket[word]).sort((a, b) => bucket[b] - bucket[a]);
-  const top = Object.entries(bucket).sort((a, b) => b[1] - a[1]).map(([word]) => word);
-  return [...new Set([...manual, ...top])].slice(0, 6).map(word => prettyWord(word));
-}
-
-function refreshAirPicture(force = false) {
-  if (state.aircraftTimer) {
-    window.clearInterval(state.aircraftTimer);
-    state.aircraftTimer = null;
-  }
-  fetchAircraftForRegion(state.selectedRegion, force);
-}
-
-async function fetchAircraftForRegion(region, force = false) {
-  const bbox = region.bbox;
-  const url = new URL('https://opensky-network.org/api/states/all');
-  url.searchParams.set('lamin', String(bbox.lamin));
-  url.searchParams.set('lamax', String(bbox.lamax));
-  url.searchParams.set('lomin', String(bbox.lomin));
-  url.searchParams.set('lomax', String(bbox.lomax));
-
-  try {
-    if (!force && state.aircraft.length) {
-      startAirLoop();
-      return;
-    }
-
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    const rows = Array.isArray(payload.states) ? payload.states : [];
-    const parsed = rows
-      .map(parseOpenSkyRow)
-      .filter(Boolean)
-      .slice(0, AIR_LIMIT);
-
-    if (!parsed.length) throw new Error('No aircraft rows');
-
-    state.aircraft = parsed;
-    state.aircraftArcs = state.aircraft.map(buildArcFromAircraft).filter(Boolean);
-    state.aircraftMode = 'live';
-    dom.airModeBadge.textContent = 'TRACKS: LIVE';
-    dom.airRosterMode.textContent = 'LIVE';
-    setOpsStatus(`Live-compatible aircraft picture loaded for ${region.label}.`);
-  } catch (error) {
-    console.warn('Aircraft fetch fallback:', error);
-    state.aircraft = buildSimulatedAircraft(region);
-    state.aircraftArcs = state.aircraft.map(buildArcFromAircraft).filter(Boolean);
-    state.aircraftMode = 'sim';
-    dom.airModeBadge.textContent = 'TRACKS: SIM';
-    dom.airRosterMode.textContent = 'SIM FALLBACK';
-    setOpsStatus(`Aircraft feed fell back to simulation for ${region.label}. Globe and roster stay usable on static hosting.`);
-  }
-
-  renderAircraftRoster();
-  updateBrief();
-  updateGlobe();
-  startAirLoop();
-}
-
-function startAirLoop() {
-  if (state.aircraftTimer) window.clearInterval(state.aircraftTimer);
-  state.aircraftTimer = window.setInterval(() => {
-    if (state.aircraftMode === 'live') {
-      advanceLiveAircraft();
-    } else if (state.aircraftMode === 'sim') {
-      advanceSimAircraft();
-    }
-    renderAircraftRoster();
-    updateGlobe();
-  }, AIR_UPDATE_INTERVAL_MS);
-}
-
-function parseOpenSkyRow(row) {
-  if (!Array.isArray(row)) return null;
-  const [icao24, callsign, country, timePosition, lastContact, lon, lat, baroAltitude, onGround, velocity, trueTrack, verticalRate, sensors, geoAltitude, squawk, spi, positionSource, category] = row;
-  if (typeof lat !== 'number' || typeof lon !== 'number') return null;
-
-  const visual = categorizeAircraft(category, velocity);
-  return {
-    kind: 'aircraft',
-    id: `air-${icao24}`,
-    icao24,
-    callsign: (callsign || icao24).trim(),
-    country: country || 'Unknown',
-    lat,
-    lng: lon,
-    heading: trueTrack ?? 0,
-    speedKts: velocity ? Math.round(velocity * 1.94384) : 0,
-    altFeet: Math.round((geoAltitude ?? baroAltitude ?? 0) * 3.28084),
-    verticalRateFpm: verticalRate ? Math.round(verticalRate * 196.85) : 0,
-    positionSource,
-    category,
-    aircraftVisual: visual.key,
-    aircraftTypeLabel: visual.label,
-    visualAltitude: visualAltitudeFromFeet(Math.round((geoAltitude ?? baroAltitude ?? 0) * 3.28084)),
-    color: '#74d3ff',
-    radius: 0.13,
-    route: projectRoute(lat, lon, trueTrack ?? 0, velocity ?? 0)
-  };
-}
-
-function categorizeAircraft(category, velocity) {
-  if (category === 8) return { key: 'rotary', label: 'Rotorcraft' };
-  if (category === 14) return { key: 'uav', label: 'UAV' };
-  if (category === 6) return { key: 'cargo', label: 'Heavy' };
-  if (category === 7) return { key: 'fighter', label: 'High performance' };
-  if (category === 4 || category === 5) return { key: 'tanker', label: 'Large aircraft' };
-  if ((velocity ?? 0) > 220) return { key: 'airliner', label: 'Fast mover' };
-  return { key: 'isr', label: 'Regional aircraft' };
-}
-
-function buildSimulatedAircraft(region) {
-  const templates = simTemplatesForRegion(region.id);
-  return templates.slice(0, AIR_LIMIT).map((tpl, index) => {
-    const progress = seededNumber(`${region.id}-${tpl.callsign}-${index}`);
-    const current = interpolateGeo(tpl.route[0], tpl.route[1], progress);
-    return {
-      kind: 'aircraft',
-      id: `sim-${region.id}-${index}`,
-      icao24: `sim${index}`,
-      callsign: tpl.callsign,
-      country: tpl.country,
-      lat: current.lat,
-      lng: current.lng,
-      route: tpl.route,
-      progress,
-      speedKts: tpl.speedKts,
-      altFeet: tpl.altFeet,
-      heading: bearingBetween(tpl.route[0], tpl.route[1]),
-      verticalRateFpm: tpl.verticalRateFpm,
-      aircraftVisual: tpl.aircraftVisual,
-      aircraftTypeLabel: tpl.typeLabel,
-      labelText: '',
-      visualAltitude: visualAltitudeFromFeet(tpl.altFeet),
-      color: '#74d3ff',
-      radius: 0.13,
-      sourceMode: 'sim'
-    };
-  });
-}
-
-function simTemplatesForRegion(regionId) {
-  const table = {
-    'middle-east': [
-      makeTemplate('VIPER-11', 'U.S.', 'fighter', 'F-15E strike', [25.25, 55.36], [31.77, 35.21], 420, 28000),
-      makeTemplate('RAVEN-04', 'U.K.', 'isr', 'ISR orbit', [35.1, 33.9], [28.4, 47.9], 290, 24000),
-      makeTemplate('MANTA-61', 'Qatar', 'airliner', 'Regional jet', [25.27, 51.61], [29.98, 31.13], 450, 36000),
-      makeTemplate('SENTRY-22', 'Coalition', 'awacs', 'AEW&C', [24.5, 54.4], [27.6, 45.0], 350, 32000),
-      makeTemplate('TEXACO-90', 'Coalition', 'tanker', 'Aerial tanker', [26.3, 50.1], [31.4, 46.0], 310, 27000),
-      makeTemplate('SCOUT-77', 'Unknown', 'uav', 'Long-endurance UAV', [15.6, 44.2], [21.0, 39.2], 190, 18000),
-      makeTemplate('CARGO-31', 'UAE', 'cargo', 'Heavy lifter', [24.43, 54.65], [33.3, 44.4], 340, 26000),
-      makeTemplate('HAWK-18', 'Israel', 'fighter', 'Air superiority', [31.0, 34.9], [33.0, 36.1], 460, 30000),
-      makeTemplate('HELIX-6', 'Jordan', 'rotary', 'Rotary wing', [31.72, 35.99], [29.53, 35.0], 140, 5000),
-      makeTemplate('GULF-82', 'Saudi', 'airliner', 'Commercial corridor', [21.49, 39.18], [26.22, 50.19], 430, 34000),
-      makeTemplate('SPECTER-2', 'Unknown', 'uav', 'Recon UAV', [34.0, 36.0], [29.5, 34.9], 160, 19000),
-      makeTemplate('JAGUAR-5', 'Coalition', 'fighter', 'Strike package', [28.0, 48.0], [24.5, 54.5], 410, 29000)
-    ],
-    'eastern-europe': [
-      makeTemplate('TRIDENT-1', 'NATO', 'isr', 'Border ISR', [54.7, 25.3], [50.4, 30.5], 300, 25000),
-      makeTemplate('BUZZARD-9', 'Ukraine', 'uav', 'Recon drone', [47.8, 35.1], [46.5, 30.7], 150, 12000),
-      makeTemplate('FALCON-2', 'Ukraine', 'fighter', 'Fast jet', [49.5, 24.0], [47.0, 37.5], 440, 29000),
-      makeTemplate('BULWARK-7', 'NATO', 'awacs', 'AEW&C', [52.2, 21.0], [49.0, 30.0], 340, 32000),
-      makeTemplate('CARGO-44', 'Poland', 'cargo', 'Logistics lift', [52.2, 20.9], [48.3, 31.1], 320, 23000),
-      makeTemplate('ORBIT-15', 'Romania', 'rotary', 'Rotary patrol', [45.7, 28.7], [44.5, 29.6], 130, 4000),
-      makeTemplate('SPEAR-19', 'Russia', 'uav', 'Strike UAV', [47.2, 38.9], [46.2, 35.1], 170, 14000),
-      makeTemplate('VECTOR-3', 'Ukraine', 'fighter', 'Interceptor', [49.0, 32.0], [46.6, 33.0], 430, 30000),
-      makeTemplate('RANGER-8', 'NATO', 'tanker', 'Refuel support', [50.1, 19.9], [48.8, 28.0], 310, 26000),
-      makeTemplate('MERLIN-5', 'Civil', 'airliner', 'Civil corridor', [52.3, 13.4], [50.0, 30.5], 450, 36000)
-    ],
-    'sudan-red-sea': [
-      makeTemplate('DAGGER-4', 'Unknown', 'uav', 'Recon UAV', [15.5, 32.5], [12.0, 27.5], 160, 16000),
-      makeTemplate('LIFTER-2', 'Aid flight', 'cargo', 'Aid lifter', [15.6, 32.5], [19.6, 37.2], 290, 21000),
-      makeTemplate('WATCH-9', 'Coalition', 'isr', 'Maritime ISR', [20.0, 38.0], [14.0, 42.0], 280, 22000),
-      makeTemplate('HELIX-4', 'Regional', 'rotary', 'Rotary support', [12.1, 24.9], [14.8, 32.1], 110, 3500),
-      makeTemplate('GUARD-6', 'Regional', 'fighter', 'Air policing', [18.0, 31.0], [22.3, 39.0], 380, 25000),
-      makeTemplate('SEAFOX-5', 'Regional', 'airliner', 'Red Sea corridor', [21.7, 39.1], [15.3, 38.9], 420, 33000),
-      makeTemplate('YANBU-8', 'Saudi', 'tanker', 'Tanker escort', [23.9, 38.0], [19.3, 40.6], 300, 24000),
-      makeTemplate('SUDAN-7', 'Regional', 'uav', 'Border watch', [14.3, 33.5], [11.8, 29.8], 150, 10000)
-    ],
-    'south-china-sea': [
-      makeTemplate('MARLIN-3', 'Philippines', 'isr', 'Maritime ISR', [14.6, 120.9], [15.1, 117.7], 260, 19000),
-      makeTemplate('DRAGON-5', 'China', 'fighter', 'Patrol fighter', [20.0, 110.3], [16.0, 114.0], 430, 29000),
-      makeTemplate('COAST-4', 'Vietnam', 'rotary', 'Coast watch', [10.8, 106.7], [11.1, 114.2], 120, 3500),
-      makeTemplate('ANCHOR-9', 'Civil', 'airliner', 'Sea lane transit', [22.3, 114.2], [1.35, 103.99], 440, 36000),
-      makeTemplate('SENTRY-12', 'U.S.', 'awacs', 'AEW&C', [18.0, 122.0], [13.0, 117.5], 350, 31000),
-      makeTemplate('LANCER-7', 'Unknown', 'uav', 'Long-range UAV', [18.0, 114.0], [10.5, 114.0], 170, 15000),
-      makeTemplate('BLUE-2', 'Malaysia', 'cargo', 'Resupply flight', [2.74, 101.7], [7.2, 115.4], 310, 24000),
-      makeTemplate('SHIELD-4', 'Japan', 'fighter', 'Partner patrol', [25.0, 121.0], [18.0, 120.0], 420, 28000)
-    ],
-    'baltic-black-sea': [
-      makeTemplate('NORDIC-1', 'NATO', 'isr', 'Signals watch', [59.4, 24.8], [57.0, 22.0], 270, 21000),
-      makeTemplate('TRAWLER-8', 'Civil', 'airliner', 'Euro corridor', [60.3, 24.9], [52.5, 13.4], 430, 35000),
-      makeTemplate('WARDEN-2', 'NATO', 'awacs', 'Air picture', [54.7, 20.5], [57.2, 18.0], 340, 32000),
-      makeTemplate('BLADE-5', 'Unknown', 'uav', 'Recon orbit', [45.0, 33.0], [44.5, 37.0], 150, 12000),
-      makeTemplate('FJORD-7', 'Civil', 'rotary', 'SAR rotary', [58.9, 5.7], [60.4, 22.3], 110, 4000),
-      makeTemplate('BALTIC-9', 'NATO', 'tanker', 'Support tanker', [54.6, 25.3], [57.5, 18.5], 300, 26000),
-      makeTemplate('EMBER-6', 'Regional', 'fighter', 'Quick reaction', [54.9, 23.9], [56.8, 24.3], 430, 29000),
-      makeTemplate('BLACK-3', 'Regional', 'cargo', 'South route', [46.4, 30.7], [42.6, 27.7], 300, 21000)
-    ],
-    'east-africa-congo': [
-      makeTemplate('KIVU-1', 'Regional', 'rotary', 'Rotary evac', [-1.7, 29.2], [-2.5, 28.8], 100, 3500),
-      makeTemplate('GORA-3', 'Regional', 'uav', 'Recon UAV', [-1.4, 29.5], [-2.0, 28.9], 140, 9000),
-      makeTemplate('LIFT-4', 'Aid flight', 'cargo', 'Aid resupply', [-1.3, 36.9], [-1.7, 29.2], 300, 23000),
-      makeTemplate('EAGLE-9', 'Regional', 'fighter', 'Fast patrol', [-3.4, 29.3], [-1.7, 29.2], 400, 26000),
-      makeTemplate('VIEW-6', 'UN charter', 'airliner', 'Charter route', [-1.96, 30.1], [-4.3, 15.3], 420, 32000),
-      makeTemplate('WATCH-7', 'Regional', 'isr', 'Border ISR', [0.3, 32.5], [-1.7, 29.2], 250, 19000),
-      makeTemplate('CARGO-2', 'Regional', 'cargo', 'Lift tasking', [-6.8, 39.2], [-1.7, 29.2], 320, 25000)
-    ],
-    'north-america': [
-      makeTemplate('EAGLE-01', 'U.S.', 'fighter', 'Air defense', [32.9, -97.0], [39.0, -104.8], 430, 29000),
-      makeTemplate('SKY-22', 'Civil', 'airliner', 'Domestic corridor', [33.6, -84.4], [41.9, -87.9], 450, 36000),
-      makeTemplate('RANGER-13', 'U.S.', 'awacs', 'Air picture', [36.2, -95.9], [38.8, -98.0], 330, 30000),
-      makeTemplate('COAST-7', 'U.S.', 'rotary', 'Coast watch', [29.9, -90.1], [27.8, -97.4], 120, 4000),
-      makeTemplate('ORBIT-5', 'U.S.', 'isr', 'Homeland ISR', [34.7, -86.7], [37.6, -122.4], 290, 21000),
-      makeTemplate('LIFTER-8', 'U.S.', 'cargo', 'Heavy airlift', [39.9, -75.2], [34.7, -92.3], 330, 25000),
-      makeTemplate('SCOUT-4', 'U.S.', 'uav', 'Border watch', [31.8, -106.4], [32.3, -117.0], 170, 14000),
-      makeTemplate('TEXACO-2', 'U.S.', 'tanker', 'Refuel lane', [40.0, -95.0], [34.9, -106.0], 300, 26000)
-    ]
-  };
-  return table[regionId] || table['north-america'];
-}
-
-function makeTemplate(callsign, country, aircraftVisual, typeLabel, start, end, speedKts, altFeet) {
-  return {
-    callsign,
-    country,
-    aircraftVisual,
-    typeLabel,
-    route: [geo(start[0], start[1]), geo(end[0], end[1])],
-    speedKts,
-    altFeet,
-    verticalRateFpm: Math.round((seededNumber(callsign) - 0.5) * 1200)
-  };
-}
-
-function geo(lat, lng) {
-  return { lat, lng };
-}
-
-function advanceSimAircraft() {
-  state.aircraft = state.aircraft.map(item => {
-    const delta = item.speedKts / 800000;
-    let progress = item.progress + delta;
-    let route = item.route;
-    if (progress > 1) {
-      progress = 0;
-      route = [route[1], route[0]];
-    }
-    const current = interpolateGeo(route[0], route[1], progress);
-    return {
-      ...item,
-      route,
-      progress,
-      lat: current.lat,
-      lng: current.lng,
-      heading: bearingBetween(route[0], route[1])
-    };
-  });
-  syncSelectedAircraft();
-  state.aircraftArcs = state.aircraft.map(buildArcFromAircraft).filter(Boolean);
-}
-
-function advanceLiveAircraft() {
-  state.aircraft = state.aircraft.map(item => {
-    const distanceKm = (item.speedKts || 0) * 1.852 * (AIR_UPDATE_INTERVAL_MS / 3600000);
-    const next = moveAlongBearing(item.lat, item.lng, item.heading || 0, distanceKm);
-    return {
-      ...item,
-      lat: next.lat,
-      lng: next.lng,
-      route: projectRoute(next.lat, next.lng, item.heading || 0, (item.speedKts || 0) / 1.94384)
-    };
-  });
-  syncSelectedAircraft();
-  state.aircraftArcs = state.aircraft.map(buildArcFromAircraft).filter(Boolean);
-}
-
-
-function syncSelectedAircraft() {
-  if (state.selectedObject?.kind !== 'aircraft') return;
-  const match = state.aircraft.find(item => item.id === state.selectedObject.id);
-  if (match) {
-    state.selectedObject = match;
-    renderTelemetry(match);
-  }
-}
-
-function renderAircraftRoster() {
-  dom.aircraftRoster.innerHTML = '';
-  if (!state.aircraft.length) {
-    dom.aircraftRoster.innerHTML = '<div class="roster-card-item"><div class="item-title">No aircraft loaded.</div><div class="story-copy">Try another region or refresh tracks.</div></div>';
-    return;
-  }
-  state.aircraft.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'roster-card-item';
-    card.innerHTML = `
-      <div class="roster-top">
-        <div class="roster-left">
-          <div class="icon-chip aircraft">${buildMarkerGlyph(item)}</div>
-          <div>
-            <div class="item-title">${escapeHtml(item.callsign)}</div>
-            <div class="item-sub">${escapeHtml(item.aircraftTypeLabel)} // ${escapeHtml(item.country)}</div>
-          </div>
-        </div>
-        <div class="item-badge ${state.aircraftMode === 'live' ? '' : 'warn'}">${state.aircraftMode === 'live' ? 'LIVE' : 'FUSED'}</div>
-      </div>
-      <div class="item-meta">
-        <div>ALT ${escapeHtml(formatFeet(item.altFeet))}</div>
-        <div>SPD ${escapeHtml(formatKts(item.speedKts))}</div>
-        <div>HDG ${escapeHtml(String(Math.round(item.heading || 0)).padStart(3, '0'))}°</div>
-        <div>VR ${escapeHtml(formatFpm(item.verticalRateFpm))}</div>
-      </div>
-    `;
-    card.addEventListener('click', () => selectObject(item));
-    dom.aircraftRoster.appendChild(card);
-  });
-
-  dom.aircraftCount.textContent = String(state.aircraft.length);
-}
-
-
-async function loadSatelliteCatalog(force = false) {
-  const cached = readSatCache();
-  if (!force && cached) {
-    state.satCatalog = cached;
-    updateSatellitePositions();
-    renderSatelliteRoster();
-    setOpsStatus('Satellite catalog loaded from cache.');
-    return;
-  }
-
-  try {
-    const all = [];
-    for (const group of SATELLITE_GROUPS) {
-      const response = await fetch(group.url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
-      const parsed = parseTleText(text, group.label).slice(0, SAT_LIMIT_PER_GROUP);
-      all.push(...parsed);
-    }
-    if (!all.length) throw new Error('No TLE records parsed');
-    state.satCatalog = all;
-    writeSatCache(all);
-    setOpsStatus('Fresh satellite catalog loaded.');
-  } catch (error) {
-    console.warn('Satellite catalog fallback:', error);
-    state.satCatalog = FALLBACK_TLES.map(item => ({ ...item, satrec: satellite.twoline2satrec(item.line1, item.line2) }));
-    setOpsStatus('Satellite catalog fell back to bundled TLE set.');
-  }
-
-  updateSatellitePositions();
-  renderSatelliteRoster();
-  updateBrief();
-  updateGlobe();
-}
-
-function startSatelliteLoop() {
-  if (state.satTimer) window.clearInterval(state.satTimer);
-  state.satTimer = window.setInterval(() => {
-    updateSatellitePositions();
-    renderSatelliteRoster();
-    updateGlobe();
-  }, SAT_UPDATE_INTERVAL_MS);
-}
-
-function parseTleText(text, groupLabel) {
-  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  const records = [];
-  for (let index = 0; index < lines.length; index += 3) {
-    const name = lines[index];
-    const line1 = lines[index + 1];
-    const line2 = lines[index + 2];
-    if (!name || !line1?.startsWith('1 ') || !line2?.startsWith('2 ')) continue;
-    records.push({ name, groupLabel, line1, line2, satrec: satellite.twoline2satrec(line1, line2) });
-  }
-  return records;
-}
-
-function updateSatellitePositions() {
-  const now = new Date();
-  state.satPoints = state.satCatalog
-    .map(entry => propagateSat(entry, now))
-    .filter(Boolean);
-
-  if (state.selectedObject?.kind === 'satellite') {
-    const match = state.satPoints.find(item => item.id === state.selectedObject.id);
-    if (match) {
-      state.selectedObject = match;
-      renderTelemetry(match);
-      state.selectedSatellitePath = buildSatellitePath(match);
-    } else {
-      state.selectedSatellitePath = buildSatellitePath(state.selectedObject);
-    }
-  }
-
-  dom.satelliteCount.textContent = String(state.satPoints.length);
-}
-
-function propagateSat(entry, when) {
-  try {
-    const propagated = satellite.propagate(entry.satrec, when);
-    if (!propagated.position) return null;
-    const gmst = satellite.gstime(when);
-    const geoPos = satellite.eciToGeodetic(propagated.position, gmst);
-    const lat = satellite.degreesLat(geoPos.latitude);
-    const lng = satellite.degreesLong(geoPos.longitude);
-    const altKm = geoPos.height;
-    return {
-      kind: 'satellite',
-      id: `sat-${slugify(entry.name)}-${entry.groupLabel}`,
-      name: entry.name,
-      groupLabel: entry.groupLabel,
-      lat,
-      lng,
-      altKm,
-      visualAltitude: visualAltitudeFromKm(altKm),
-      color: '#ffcd63',
-      radius: 0.12,
-      satrec: entry.satrec,
-      line1: entry.line1,
-      line2: entry.line2,
-      aircraftVisual: 'satellite'
-    };
-  } catch (error) {
-    console.warn('propagate sat failed', error);
-    return null;
-  }
-}
-
-function buildSatellitePath(item) {
-  if (!item?.satrec) return [];
-  const path = [];
-  const now = Date.now();
-  for (let minutes = -24; minutes <= 24; minutes += 3) {
-    const sampleTime = new Date(now + minutes * 60 * 1000);
-    const propagated = satellite.propagate(item.satrec, sampleTime);
-    if (!propagated.position) continue;
-    const gmst = satellite.gstime(sampleTime);
-    const geoPos = satellite.eciToGeodetic(propagated.position, gmst);
-    path.push([
-      satellite.degreesLat(geoPos.latitude),
-      satellite.degreesLong(geoPos.longitude),
-      visualAltitudeFromKm(geoPos.height)
-    ]);
-  }
-  return [{ kind: 'path', color: '#ffcd63', coords: path }];
-}
-
-function renderSatelliteRoster() {
-  dom.satelliteRoster.innerHTML = '';
-  if (!state.satPoints.length) {
-    dom.satelliteRoster.innerHTML = '<div class="roster-card-item"><div class="item-title">No satellites tracked yet.</div><div class="story-copy">Refresh tracks or wait for the catalog to load.</div></div>';
-    return;
-  }
-  state.satPoints.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'roster-card-item';
-    card.innerHTML = `
-      <div class="roster-top">
-        <div class="roster-left">
-          <div class="icon-chip satellite">${buildMarkerGlyph(item)}</div>
-          <div>
-            <div class="item-title">${escapeHtml(trimText(item.name, 34))}</div>
-            <div class="item-sub">${escapeHtml(item.groupLabel)}</div>
-          </div>
-        </div>
-        <div class="item-badge warn">ORB</div>
-      </div>
-      <div class="item-meta">
-        <div>ALT ${escapeHtml(formatKm(item.altKm))}</div>
-        <div>LAT ${escapeHtml(item.lat.toFixed(1))}°</div>
-        <div>LON ${escapeHtml(item.lng.toFixed(1))}°</div>
-        <div>VIS ${escapeHtml(item.visualAltitude.toFixed(3))}</div>
-      </div>
-    `;
-    card.addEventListener('click', () => selectObject(item));
-    dom.satelliteRoster.appendChild(card);
-  });
-}
-
-
-function updateGlobe() {
-  if (!state.globe) return;
-
-  const points = [];
-  const htmlItems = [];
-  const rings = [];
-  const arcs = [];
-  const paths = [];
-
-  if (state.showRegions) {
-    REGIONS.forEach(region => {
-      points.push({
-        ...region,
-        kind: 'region',
-        color: region.id === state.selectedRegion.id ? '#7bf0ba' : '#6bc9ff',
-        radius: region.id === state.selectedRegion.id ? 0.22 : 0.16,
-        altitude: region.id === state.selectedRegion.id ? 0.02 : 0.014
-      });
-      htmlItems.push({
-        ...region,
-        kind: 'region',
-        visualAltitude: 0.001,
-        labelText: region.id === state.selectedRegion.id ? region.label : ''
-      });
-    });
-  }
-
-  if (state.showConflicts || state.showEw) {
-    HOTSPOTS.forEach(item => {
-      const isConflict = item.kind === 'conflict';
-      if ((isConflict && !state.showConflicts) || (!isConflict && !state.showEw)) return;
-      points.push({
-        ...item,
-        color: isConflict ? '#ff9e58' : '#ff6b6b',
-        radius: item.severity >= 4 ? 0.21 : 0.16,
-        altitude: isConflict ? 0.018 : 0.015
-      });
-      htmlItems.push({
-        ...item,
-        visualAltitude: isConflict ? 0.012 : 0.01,
-        labelText: item.label
-      });
-      rings.push({
-        lat: item.lat,
-        lng: item.lng,
-        maxR: isConflict ? 3.4 : 4.2,
-        propagationSpeed: isConflict ? 1.1 : 1.5,
-        repeatPeriod: isConflict ? 2600 : 2200,
-        color: () => isConflict ? 'rgba(255,158,88,0.38)' : 'rgba(255,107,107,0.38)'
-      });
-    });
-  }
-
-  if (state.showAircraft) {
-    state.aircraft.forEach(item => {
-      htmlItems.push({ ...item, kind: 'aircraft', labelText: '' });
-    });
-    arcs.push(...state.aircraftArcs);
-  }
-
-  if (state.showSatellites) {
-    state.satPoints.forEach(item => {
-      htmlItems.push({ ...item, kind: 'satellite', labelText: '' });
-    });
-    if (state.selectedSatellitePath?.length) {
-      paths.push(...state.selectedSatellitePath);
-    }
-  }
-
-  if (state.selectedObject?.lat != null && state.selectedObject?.lng != null) {
-    rings.push({
-      lat: state.selectedObject.lat,
-      lng: state.selectedObject.lng,
-      maxR: 2.4,
-      propagationSpeed: 1.8,
-      repeatPeriod: 1500,
-      color: () => 'rgba(116,211,255,0.45)'
-    });
-  }
-
-  state.globe.pointsData(points);
-  state.globe.htmlElementsData(htmlItems);
-  state.globe.ringsData(rings);
-  state.globe.arcsData(arcs);
-  state.globe.pathsData(paths);
-
-  dom.conflictCount.textContent = String(HOTSPOTS.filter(item => item.kind === 'conflict' && item.regionIds.includes(state.selectedRegion.id)).length);
-  dom.ewCount.textContent = String(HOTSPOTS.filter(item => item.kind === 'ew' && item.regionIds.includes(state.selectedRegion.id)).length);
-}
-
-function buildArcFromAircraft(item) {
-  if (!item.route?.[0] || !item.route?.[1]) return null;
-  return {
-    startLat: item.route[0].lat,
-    startLng: item.route[0].lng,
-    endLat: item.route[1].lat,
-    endLng: item.route[1].lng,
-    altitude: 0.1,
-    color: item.sourceMode === 'sim' || state.aircraftMode === 'sim' ? '#74d3ff' : '#7bf0ba'
-  };
-}
-
-function getRegionalHotspots(region) {
-  return HOTSPOTS.filter(item => item.regionIds.includes(region.id));
-}
-
-function renderTelemetry(item) {
-  if (!item) return;
-  let visualKey = 'region';
-  let badge = 'READY';
-  let title = item.label || item.name || item.callsign || 'Object';
+  const title = item.callsign || item.name;
   let copy = '';
-  let stats = [];
-  let notes = [];
+  let kicker = type.toUpperCase();
 
-  if (item.kind === 'aircraft') {
-    visualKey = item.aircraftVisual || 'airliner';
-    badge = state.aircraftMode === 'live' ? 'AIR TRACK' : 'AIR TRACK / FUSED';
-    copy = `${item.aircraftTypeLabel} track visible over ${item.country}. Direct symbol popup is pinned on-globe, while this card gives the deeper board read.`;
-    stats = [
-      ['Callsign', item.callsign],
-      ['Track class', item.aircraftTypeLabel],
-      ['Altitude', formatFeet(item.altFeet)],
-      ['Speed', formatKts(item.speedKts)],
-      ['Heading', `${Math.round(item.heading || 0).toString().padStart(3, '0')}°`],
-      ['Vertical rate', formatFpm(item.verticalRateFpm)],
-      ['Country', item.country],
-      ['Source', state.aircraftMode === 'live' ? 'Live-compatible / heuristic type map' : 'Fused fallback picture']
-    ];
-    notes = [
-      'Track type labels are behavior/category based unless the callsign/operator pattern makes the class obvious.',
-      state.aircraftMode === 'live'
-        ? 'Live OpenSky pulls can be sparse or rate-limited on static hosting, so the board blends hard data with UI-friendly interpretation.'
-        : 'Fallback mode is deliberate: the visual experience stays strong even when static-hosted public aircraft feeds fail.'
-    ];
-  } else if (item.kind === 'satellite') {
-    visualKey = 'satellite';
-    badge = 'ORBITAL';
-    copy = `${item.groupLabel} object propagated locally in-browser from public TLE data. The selected orbital path is rendered on the globe as a short projected track.`;
-    stats = [
-      ['Name', trimText(item.name, 30)],
-      ['Group', item.groupLabel],
-      ['Altitude', formatKm(item.altKm)],
-      ['Latitude', `${item.lat.toFixed(2)}°`],
-      ['Longitude', `${item.lng.toFixed(2)}°`],
-      ['Visual altitude', item.visualAltitude.toFixed(3)],
-      ['Catalog mode', 'TLE / propagated'],
-      ['Refresh', 'Cached public catalog']
-    ];
-    notes = [
-      'Orbital path is a planning and orientation visual, not a precision conjunction tool.',
-      'Catalog refresh is intentionally throttled so the site does not hammer public TLE infrastructure.'
-    ];
-  } else if (item.kind === 'conflict') {
-    visualKey = 'conflict';
-    badge = 'CONFLICT';
-    copy = item.summary;
-    stats = [
-      ['Zone', item.label],
-      ['Severity', `SEV-${item.severity}`],
-      ['Actors', item.actors],
-      ['What to watch', item.watch],
-      ['Region link', item.regionIds.join(', ')],
-      ['Layer', 'Conflict watch']
-    ];
-    notes = [item.source, 'Curated hotspots keep the map readable and keep the brief from turning into noise.'];
-  } else if (item.kind === 'ew') {
-    visualKey = 'ew';
-    badge = 'GNSS / EW';
-    copy = item.summary;
-    stats = [
-      ['Zone', item.label],
-      ['Severity', `SEV-${item.severity}`],
-      ['Risk', 'Navigation integrity degraded'],
-      ['What to watch', item.watch],
-      ['Region link', item.regionIds.join(', ')],
-      ['Layer', 'EW / GNSS watch']
-    ];
-    notes = [item.source, 'This layer is about operational consequence: route safety, signal trust, and access friction.'];
-  } else {
-    visualKey = 'region';
-    badge = 'REGION';
-    copy = `${item.label} is the current focus sector. The right rail is built so the question 'what is going on here right now?' can be answered fast.`;
-    stats = [
-      ['Region', item.label],
-      ['Latitude', `${item.lat.toFixed(1)}°`],
-      ['Longitude', `${item.lng.toFixed(1)}°`],
-      ['Theme', item.theme],
-      ['Evidence query', item.query],
-      ['BBox', `${item.bbox.lamin}/${item.bbox.lamax} // ${item.bbox.lomin}/${item.bbox.lomax}`]
-    ];
-    notes = ['This region drives the presidential brief, local flightline, and the hotspot emphasis.', 'Use filter buttons to re-task the brief without abandoning the geographic sector.'];
-  }
+  if (type === 'aircraft') copy = `${item.type} • ${item.role} • ${item.speedKt} kt • ${item.altitudeFt.toLocaleString()} ft`;
+  if (type === 'satellite') copy = `${item.type} • ${item.family} • ${item.altitudeKm.toLocaleString()} km`;
+  if (type === 'region') copy = item.summary;
+  if (type === 'conflict' || type === 'ew') copy = item.summary;
 
-  dom.selectedKindBadge.textContent = badge;
-  dom.telemetryPanel.innerHTML = `
-    <div class="telemetry-hero">
-      <div class="telemetry-overlay">
-        <div class="telemetry-eyebrow">${escapeHtml(badge)}</div>
-        <h3 class="telemetry-title">${escapeHtml(title)}</h3>
-        <div class="telemetry-copy">${escapeHtml(copy)}</div>
-      </div>
-      <div class="telemetry-silhouette">${heroSvgForKey(visualKey)}</div>
-    </div>
-    <div class="telemetry-grid">
-      ${stats.map(([label, value]) => `
-        <div class="telemetry-stat">
-          <span class="label">${escapeHtml(label)}</span>
-          <strong>${escapeHtml(trimText(String(value), 120))}</strong>
-        </div>
-      `).join('')}
-    </div>
-    <div class="telemetry-notes">
-      ${notes.map(note => `<div>${escapeHtml(note)}</div>`).join('<br/>')}
-    </div>
+  mapPopupEl.innerHTML = `
+    <div class="popup-kicker">${kicker}</div>
+    <div class="popup-title">${title}</div>
+    <div class="popup-copy">${copy}</div>
   `;
+  mapPopupEl.style.left = `${left}px`;
+  mapPopupEl.style.top = `${top}px`;
+  mapPopupEl.classList.remove('hidden');
 }
 
-function heroSvgForKey(visualKey) {
-  const svg = visualKey === 'region'
-    ? MARKER_GLYPHS.region
-    : visualKey === 'satellite'
-      ? MARKER_GLYPHS.satellite
-      : visualKey === 'conflict'
-        ? MARKER_GLYPHS.conflict
-        : visualKey === 'ew'
-          ? MARKER_GLYPHS.ew
-          : MARKER_GLYPHS[visualKey] || MARKER_GLYPHS.airliner;
-  return `<div class="hero-glyph">${svg}</div>`;
+function hidePopup() {
+  mapPopupEl.classList.add('hidden');
 }
 
-function toggleAmbience() {
-  if (state.ambienceOn) {
-    stopAmbience();
-    return;
-  }
-  startAmbience();
-}
-
-function startAmbience() {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) {
-    setOpsStatus('This browser does not expose Web Audio, so ambience stays off.');
-    return;
-  }
-
-  const ctx = new AudioContext();
-  const master = ctx.createGain();
-  master.gain.value = 0.015;
-  master.connect(ctx.destination);
-
-  const drone = ctx.createOscillator();
-  drone.type = 'sine';
-  drone.frequency.value = 48;
-  drone.connect(master);
-  drone.start();
-
-  const pulseLoop = window.setInterval(() => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(650, ctx.currentTime);
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.018, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.24);
-    osc.connect(gain);
-    gain.connect(master);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.26);
-  }, 2500);
-
-  state.ambienceHandle = { ctx, master, drone, pulseLoop };
-  state.ambienceOn = true;
-  dom.ambienceBtn.textContent = 'Ambience on';
-  setOpsStatus('Ambient watch-floor audio enabled.');
-}
-
-function stopAmbience() {
-  const handle = state.ambienceHandle;
-  if (!handle) return;
-  window.clearInterval(handle.pulseLoop);
-  handle.drone.stop();
-  handle.master.disconnect();
-  handle.ctx.close();
-  state.ambienceHandle = null;
-  state.ambienceOn = false;
-  dom.ambienceBtn.textContent = 'Ambience off';
-  setOpsStatus('Ambient watch-floor audio disabled.');
-}
-
-function setFeedStatus(message, isError = false) {
-  dom.status.textContent = message;
-  dom.status.classList.toggle('error', isError);
-}
-
-function setOpsStatus(message) {
-  dom.opsStatusText.textContent = message;
-}
-
-function readSatCache() {
-  try {
-    const raw = localStorage.getItem(SAT_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed.timestamp || Date.now() - parsed.timestamp > SAT_CACHE_MAX_AGE_MS) return null;
-    return parsed.items.map(item => ({ ...item, satrec: satellite.twoline2satrec(item.line1, item.line2) }));
-  } catch {
-    return null;
-  }
-}
-
-function writeSatCache(items) {
-  try {
-    localStorage.setItem(SAT_CACHE_KEY, JSON.stringify({
-      timestamp: Date.now(),
-      items: items.map(item => ({ name: item.name, groupLabel: item.groupLabel, line1: item.line1, line2: item.line2 }))
-    }));
-  } catch {
-    // ignore
-  }
-}
-
-function projectRoute(lat, lng, headingDeg, velocityMs) {
-  const distanceKm = Math.max(120, Math.min(900, (velocityMs || 160) * 3.6 * 0.9));
-  const start = moveAlongBearing(lat, lng, headingDeg + 180, distanceKm * 0.35);
-  const end = moveAlongBearing(lat, lng, headingDeg, distanceKm * 0.65);
-  return [start, end];
-}
-
-function moveAlongBearing(latDeg, lngDeg, bearingDeg, distanceKm) {
-  const radius = 6371;
-  const lat1 = degToRad(latDeg);
-  const lng1 = degToRad(lngDeg);
-  const brng = degToRad(bearingDeg);
-  const d = distanceKm / radius;
-
-  const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(brng));
-  const lng2 = lng1 + Math.atan2(Math.sin(brng) * Math.sin(d) * Math.cos(lat1), Math.cos(d) - Math.sin(lat1) * Math.sin(lat2));
-
-  return { lat: radToDeg(lat2), lng: normalizeLng(radToDeg(lng2)) };
-}
-
-function interpolateGeo(start, end, t) {
-  return {
-    lat: start.lat + (end.lat - start.lat) * t,
-    lng: normalizeLng(start.lng + shortestLngDelta(start.lng, end.lng) * t)
+function startClocks() {
+  const tick = () => {
+    utcClockEl.textContent = new Date().toISOString().slice(11, 19);
   };
+  tick();
+  setInterval(tick, 1000);
 }
 
-function shortestLngDelta(from, to) {
-  let delta = to - from;
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-  return delta;
-}
+function startAircraftAnimation() {
+  const tick = () => {
+    AIRCRAFT.forEach(item => {
+      item.t = (item.t + (item.speedKt / 180000)) % item.route.length;
+      const segmentIndex = Math.floor(item.t);
+      const nextIndex = (segmentIndex + 1) % item.route.length;
+      const ratio = item.t - segmentIndex;
+      const [lat1, lng1] = item.route[segmentIndex];
+      const [lat2, lng2] = item.route[nextIndex];
+      item.lat = lerp(lat1, lat2, ratio);
+      item.lng = lerpLng(lng1, lng2, ratio);
+      item.heading = computeHeading(lat1, lng1, lat2, lng2);
+    });
 
-function bearingBetween(start, end) {
-  const lat1 = degToRad(start.lat);
-  const lat2 = degToRad(end.lat);
-  const diffLong = degToRad(end.lng - start.lng);
-  const y = Math.sin(diffLong) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(diffLong);
-  return (radToDeg(Math.atan2(y, x)) + 360) % 360;
-}
-
-function visualAltitudeFromFeet(feet) {
-  return Math.max(0.01, Math.min(0.09, feet / 500000));
-}
-
-function visualAltitudeFromKm(km) {
-  return Math.max(0.06, Math.min(0.25, km / 45000));
-}
-
-function formatFeet(value) {
-  return `${Math.round(value).toLocaleString()} ft`;
-}
-
-function formatKts(value) {
-  return `${Math.round(value).toLocaleString()} kts`;
-}
-
-function formatKm(value) {
-  return `${Math.round(value).toLocaleString()} km`;
-}
-
-function formatFpm(value) {
-  const rounded = Math.round(value || 0);
-  return `${rounded >= 0 ? '+' : ''}${rounded.toLocaleString()} fpm`;
-}
-
-function slugify(text) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-function trimText(text, maxLength) {
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
-}
-
-function safeUrlDomain(url) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function seededNumber(input) {
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-  }
-  return ((hash >>> 0) % 1000) / 1000;
-}
-
-function prettyWord(word) {
-  const replacements = {
-    gps: 'GPS',
-    ew: 'EW',
-    airspace: 'airspace',
-    cyberattack: 'cyberattack',
-    missile: 'missile',
-    drone: 'drone',
-    shipping: 'shipping',
-    spoofing: 'spoofing',
-    jamming: 'jamming'
+    if (layerState.aircraft) renderGlobeObjects();
+    if (selectedItem && selectedItem.kind === 'Aircraft') {
+      const updated = AIRCRAFT.find(a => a.id === selectedItem.id);
+      if (updated) renderSelected({ kind: 'Aircraft', ...updated });
+    }
   };
-  return replacements[word] || word;
+
+  tick();
+  setInterval(tick, 550);
 }
 
-function degToRad(deg) {
-  return deg * Math.PI / 180;
+function startSatelliteAnimation() {
+  const tick = () => {
+    const now = Date.now();
+    SATELLITES.forEach(item => {
+      const angle = ((now % item.periodMs) / item.periodMs) * Math.PI * 2 + item.phase;
+      item.lat = item.inclination * Math.sin(angle);
+      item.lng = wrapLng((angle * 180 / Math.PI) * 1.8 + item.lngBias - (now / item.periodMs) * 30);
+      item.heading = wrapDegrees((Math.cos(angle) * 180) + 180);
+    });
+
+    if (layerState.satellites) renderGlobeObjects();
+    if (selectedItem && selectedItem.kind === 'Satellite') {
+      const updated = SATELLITES.find(s => s.id === selectedItem.id);
+      if (updated) renderSelected({ kind: 'Satellite', ...updated });
+    }
+  };
+  tick();
+  setInterval(tick, 1500);
 }
 
-function radToDeg(rad) {
-  return rad * 180 / Math.PI;
+function lerp(a, b, t) {
+  return a + (b - a) * t;
 }
 
-function normalizeLng(lng) {
+function lerpLng(a, b, t) {
+  let delta = b - a;
+  if (Math.abs(delta) > 180) delta -= Math.sign(delta) * 360;
+  return wrapLng(a + delta * t);
+}
+
+function wrapLng(lng) {
   let value = lng;
   while (value > 180) value -= 360;
   while (value < -180) value += 360;
   return value;
 }
+
+function wrapDegrees(deg) {
+  let value = deg;
+  while (value > 360) value -= 360;
+  while (value < 0) value += 360;
+  return value;
+}
+
+function computeHeading(lat1, lng1, lat2, lng2) {
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const lam1 = lng1 * Math.PI / 180;
+  const lam2 = lng2 * Math.PI / 180;
+  const y = Math.sin(lam2 - lam1) * Math.cos(phi2);
+  const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(lam2 - lam1);
+  return wrapDegrees(Math.atan2(y, x) * 180 / Math.PI);
+}
+
+init();
