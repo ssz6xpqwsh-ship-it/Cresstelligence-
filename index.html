@@ -3,25 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>CRESSWELL INTEL // WATCH FLOOR</title>
-  <meta name="description" content="CRESSWELL INTEL watch floor with executive briefs, live-style aircraft and satellite overlays, conflict watch, and GNSS disruption tracking." />
+  <title>Cresstelligence // Global Watch Floor</title>
+  <meta name="description" content="Cresstelligence global watch floor with presidential-style regional briefs, aircraft and satellite overlays, conflict watch, and GNSS / EW tracking." />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://unpkg.com/globe.gl"></script>
 </head>
 <body>
+  <div class="backdrop-grid"></div>
   <div class="screen-noise"></div>
 
   <header class="topbar">
     <div class="brand-block">
-      <div class="eyebrow">CRESSWELL INTEL // GLOBAL WATCH FLOOR</div>
-      <h1 id="siteTitle">CRESSWELL INTEL</h1>
-      <p id="siteTagline">Executive briefs, flightline picture, orbital watch, and electronic warfare hotspots.</p>
+      <div class="eyebrow">CRESSTELLIGENCE // GLOBAL WATCH FLOOR</div>
+      <h1 id="siteTitle">Cresstelligence</h1>
+      <p id="siteTagline">Defense, aviation, orbital, and conflict posture in one interactive open-source picture.</p>
     </div>
 
     <div class="header-actions">
-      <button id="refreshIntelBtn" class="secondary-btn">Refresh intel</button>
+      <button id="refreshIntelBtn" class="secondary-btn">Refresh brief</button>
       <button id="refreshTracksBtn" class="secondary-btn">Refresh tracks</button>
-      <button id="ambienceBtn">Ambience off</button>
+      <button id="spinToggleBtn" class="secondary-btn">Free spin: off</button>
+      <button id="ambienceBtn" class="secondary-btn">Ops audio: off</button>
     </div>
   </header>
 
@@ -51,8 +53,8 @@
       <strong id="ewCount">0</strong>
     </div>
     <div class="command-pill wide live-pill">
-      <span class="label">Ops status</span>
-      <strong id="opsStatusText">Cold start complete. Building watch floor...</strong>
+      <span class="label">Watch status</span>
+      <strong id="opsStatusText">Cold start complete. Building regional picture...</strong>
     </div>
   </section>
 
@@ -61,17 +63,17 @@
       <div id="globeViz"></div>
 
       <div class="floating-panel left-panel hud-panel">
-        <div class="floating-title">Directives</div>
-        <div>Tap a region, aircraft, satellite, conflict, or EW zone.</div>
-        <div>The globe is the picture; the right rail is the brief.</div>
+        <div class="floating-title">Interaction</div>
+        <div>Tap a region, aircraft, satellite, conflict point, or EW zone.</div>
+        <div>Track popups open next to the symbol. Full cards live in the right rail.</div>
       </div>
 
       <div class="floating-panel right-panel hud-panel">
-        <div class="floating-title">Visual layers</div>
-        <div>Cyan = aircraft</div>
-        <div>Gold = satellites</div>
-        <div>Orange = conflict</div>
-        <div>Red = GNSS / EW interference</div>
+        <div class="floating-title">Visual language</div>
+        <div>Cyan = aircraft tracks</div>
+        <div>Gold = orbital assets</div>
+        <div>Orange = conflict hotspots</div>
+        <div>Red = reported GNSS / EW disruption</div>
       </div>
 
       <div class="floating-panel bottom-panel score-panel">
@@ -79,102 +81,120 @@
           <span class="score-label">Threat score</span>
           <strong id="threatScore">72</strong>
         </div>
-        <div class="score-copy" id="threatSummary">Active global watch with multiple contested theaters and persistent navigation interference.</div>
+        <div class="score-copy" id="threatSummary">Regional pressure remains elevated across multiple theaters, with air defense, drone, and navigation-risk overlap.</div>
       </div>
     </section>
 
     <aside class="sidebar">
-      <section class="card quick-card">
+      <section class="card control-card">
         <div class="card-header-row">
           <h2>Control deck</h2>
           <span class="badge badge-live" id="airModeBadge">TRACKS: BOOT</span>
         </div>
 
         <div class="mini-section">
-          <div class="mini-label">Region selectors</div>
+          <div class="mini-label">Regional deck</div>
           <div id="regionButtons" class="button-stack tight"></div>
         </div>
 
-        <div class="mini-section">
-          <div class="mini-label">Display layers</div>
-          <div id="layerButtons" class="button-grid"></div>
-        </div>
-
-        <div class="mini-section">
-          <div class="mini-label">Analyst filters</div>
-          <div id="categoryButtons" class="button-grid"></div>
+        <div class="mini-section two-up">
+          <div>
+            <div class="mini-label">Layers</div>
+            <div id="layerButtons" class="button-grid"></div>
+          </div>
+          <div>
+            <div class="mini-label">Filters</div>
+            <div id="categoryButtons" class="button-grid"></div>
+          </div>
         </div>
 
         <div class="mini-section">
           <div class="mini-label">Custom tasking</div>
           <form id="topicForm" class="topic-form">
-            <input id="topicInput" type="text" placeholder="drone OR Taiwan OR missile OR wildfire" />
+            <input id="topicInput" type="text" placeholder="drone OR Taiwan OR missile OR air defense" />
             <button type="submit">Run</button>
           </form>
         </div>
       </section>
 
-      <section class="card brief-card">
-        <div class="card-header-row">
-          <h2 id="briefTitle">Presidential brief</h2>
-          <span class="badge" id="briefBadge">SEV-3</span>
-        </div>
-        <p id="briefTimestamp" class="small muted">Building brief...</p>
-        <div id="briefPanel" class="brief-panel"></div>
-      </section>
-
-      <section class="card telemetry-card">
+      <section class="card telemetry-card pinned-card">
         <div class="card-header-row">
           <h2>Selected object</h2>
           <span class="badge badge-secondary" id="selectedKindBadge">READY</span>
         </div>
         <div id="telemetryPanel" class="telemetry-panel">
-          <div class="telemetry-empty">Tap a plane, satellite, conflict marker, EW zone, or region for a full card.</div>
+          <div class="telemetry-empty">Tap a region, aircraft, satellite, conflict marker, or EW zone for a full card.</div>
         </div>
       </section>
 
-      <section class="card roster-card">
-        <div class="card-header-row">
-          <h2>Flightline</h2>
-          <span class="badge badge-secondary" id="airRosterMode">REGIONAL</span>
+      <section class="tab-shell">
+        <div class="tab-row" id="tabButtons">
+          <button class="tab-btn active" data-tab="brief">Brief</button>
+          <button class="tab-btn" data-tab="air">Air</button>
+          <button class="tab-btn" data-tab="space">Space</button>
+          <button class="tab-btn" data-tab="watch">Watch</button>
         </div>
-        <p class="small muted">This is your active aircraft picture for the selected region. Tap any aircraft row or icon on the globe for the full card.</p>
-        <div id="aircraftRoster" class="roster-list"></div>
-      </section>
 
-      <section class="card roster-card">
-        <div class="card-header-row">
-          <h2>Orbital watch</h2>
-          <span class="badge badge-secondary">TRACKED</span>
-        </div>
-        <p class="small muted">Limited orbital watch list for readability on iPhone. Tap a satellite for altitude, group, and track details.</p>
-        <div id="satelliteRoster" class="roster-list"></div>
-      </section>
+        <div class="tab-panel active" data-tab-panel="brief">
+          <section class="card brief-card">
+            <div class="card-header-row">
+              <h2 id="briefTitle">Presidential brief</h2>
+              <span class="badge" id="briefBadge">SEV-3</span>
+            </div>
+            <p id="briefTimestamp" class="small muted">Building brief...</p>
+            <div id="briefPanel" class="brief-panel"></div>
+          </section>
 
-      <section class="card hotspot-card">
-        <div class="card-header-row">
-          <h2>Conflict watch</h2>
-          <span class="badge badge-warn" id="conflictBadge">HOT</span>
+          <section class="card feed-card compact-feed-card">
+            <div class="card-header-row">
+              <h2 id="feedTitle">Source wires</h2>
+              <span class="badge badge-secondary">OSINT</span>
+            </div>
+            <p id="feedSubtitle" class="small muted">Open-source wire titles that shaped the brief.</p>
+            <div id="status" class="status">Loading source feed...</div>
+            <div id="results" class="results"></div>
+          </section>
         </div>
-        <div id="conflictList" class="hotspot-list"></div>
-      </section>
 
-      <section class="card hotspot-card">
-        <div class="card-header-row">
-          <h2>GNSS / EW watch</h2>
-          <span class="badge badge-danger">DEGRADED</span>
+        <div class="tab-panel" data-tab-panel="air">
+          <section class="card roster-card">
+            <div class="card-header-row">
+              <h2>Flightline</h2>
+              <span class="badge badge-secondary" id="airRosterMode">REGIONAL</span>
+            </div>
+            <p class="small muted">Tap any row or any aircraft symbol on the globe for a pinned card and direct marker popup.</p>
+            <div id="aircraftRoster" class="roster-list"></div>
+          </section>
         </div>
-        <div id="ewList" class="hotspot-list"></div>
-      </section>
 
-      <section class="card feed-card">
-        <div class="card-header-row">
-          <h2 id="feedTitle">Evidence feed</h2>
-          <span class="badge badge-secondary">SOURCE</span>
+        <div class="tab-panel" data-tab-panel="space">
+          <section class="card roster-card">
+            <div class="card-header-row">
+              <h2>Orbital watch</h2>
+              <span class="badge badge-secondary">TRACKED</span>
+            </div>
+            <p class="small muted">Orbital assets are propagated locally in the browser from public TLE data and cached for sanity.</p>
+            <div id="satelliteRoster" class="roster-list"></div>
+          </section>
         </div>
-        <p id="feedSubtitle" class="small muted">Raw source titles feeding the executive brief.</p>
-        <div id="status" class="status">Loading source feed...</div>
-        <div id="results" class="results"></div>
+
+        <div class="tab-panel" data-tab-panel="watch">
+          <section class="card hotspot-card">
+            <div class="card-header-row">
+              <h2>Conflict watch</h2>
+              <span class="badge badge-warn" id="conflictBadge">HOT</span>
+            </div>
+            <div id="conflictList" class="hotspot-list"></div>
+          </section>
+
+          <section class="card hotspot-card">
+            <div class="card-header-row">
+              <h2>GNSS / EW watch</h2>
+              <span class="badge badge-danger">DEGRADED</span>
+            </div>
+            <div id="ewList" class="hotspot-list"></div>
+          </section>
+        </div>
       </section>
     </aside>
   </main>

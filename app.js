@@ -1,7 +1,7 @@
 import * as satellite from 'https://esm.sh/satellite.js@6.0.2';
 
 const GlobeFactory = window.Globe;
-const SAT_CACHE_KEY = 'cresswell-intel-sat-cache-v4';
+const SAT_CACHE_KEY = 'cresstelligence-sat-cache-v5';
 const SAT_CACHE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const SAT_UPDATE_INTERVAL_MS = 2500;
 const AIR_UPDATE_INTERVAL_MS = 1400;
@@ -9,8 +9,8 @@ const AIR_LIMIT = 14;
 const SAT_LIMIT_PER_GROUP = 6;
 
 const SITE = {
-  title: 'CRESSWELL INTEL',
-  tagline: 'Executive briefs, flightline picture, orbital watch, and electronic warfare hotspots.'
+  title: 'Cresstelligence',
+  tagline: 'Defense, aviation, orbital, and conflict posture in one interactive open-source picture.'
 };
 
 const ICONS = {
@@ -19,6 +19,22 @@ const ICONS = {
   conflict: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3h9l-2 4 5 2-2 5H9l2-4-6-2zM5 14h2v7H5z"/></svg>',
   ew: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4a8 8 0 0 1 8 8h-2a6 6 0 0 0-6-6zm0 4a4 4 0 0 1 4 4h-2a2 2 0 0 0-2-2zm0 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-8-1a8 8 0 0 1 8-8v2a6 6 0 0 0-6 6zm2 0a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2z"/></svg>',
   region: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>'
+};
+
+
+const MARKER_GLYPHS = {
+  fighter: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 2 38 18l16 8-11 4 3 16-8-5-6 21-6-21-8 5 3-16-11-4 16-8 6-16Z"/></svg>`,
+  airliner: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 3c2 0 4 2 4 4v14l14 7v5l-14-3v14l5 8v5l-8-3-4 7-4-7-8 3v-5l5-8V30l-14 3v-5l14-7V7c0-2 2-4 4-4h6Z"/></svg>`,
+  cargo: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M28 4h8c2 0 4 2 4 4v12l16 8v6l-16-3v13l6 9v5l-10-4-4 8-4-8-10 4v-5l6-9V31L8 34v-6l16-8V8c0-2 2-4 4-4Z"/></svg>`,
+  rotary: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M11 18h42v4H11zM30 12h4v11h-4zM18 30h20c5 0 9 4 9 9v3H17v-3c0-5 4-9 9-9Zm10 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Zm-12 0a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z"/></svg>`,
+  uav: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 8 36 18l18 7v4l-18-3-4 6-4-6-18 3v-4l18-7 4-10Zm-4 25h8v14l6 7v3l-10-4-10 4v-3l6-7V33Z"/></svg>`,
+  awacs: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M21 20h22v4H21zM32 8a12 12 0 0 1 12 8H20a12 12 0 0 1 12-8Zm-3 14h6v26l5 8v3l-8-4-8 4v-3l5-8V22Zm-18 8 18-4 3 5-4 6-17 4v-5l9-3-9-3v-0Zm42 0v5l-17-4-4-6 3-5 18 4-9 3 9 3Z"/></svg>`,
+  tanker: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M31 4h2c3 0 5 2 5 5v12l15 8v5l-15-3v13l5 8v4l-9-3-2 8-2-8-9 3v-4l5-8V31l-15 3v-5l15-8V9c0-3 2-5 5-5Zm8 28c5 2 8 6 8 12h-4c0-4-2-7-6-9z"/></svg>`,
+  isr: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 5 36 16l17 7v4l-17-3-4 7-4-7-17 3v-4l17-7 4-11Zm-3 27h6v14l7 8v3l-10-4-10 4v-3l7-8V32Zm-10-9h26v4H19z"/></svg>`,
+  satellite: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><rect x="24" y="22" width="16" height="20" rx="3"/><rect x="6" y="20" width="14" height="24" rx="2"/><rect x="44" y="20" width="14" height="24" rx="2"/><path d="M20 32h4m16 0h4M30 14h4v8h-4zM29 42h6v8h-6z" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+  conflict: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M29 6h6v13l11-6 3 5-11 6 11 6-3 5-11-6v13h-6V29l-11 6-3-5 11-6-11-6 3-5 11 6V6Z"/></svg>`,
+  ew: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="32" r="4"/><path d="M32 18a14 14 0 0 1 14 14M32 10a22 22 0 0 1 22 22M18 32a14 14 0 0 1 14-14M10 32a22 22 0 0 1 22-22" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M20 44h24" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`,
+  region: `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 6 50 18v28L32 58 14 46V18L32 6Zm0 8-11 7v14l11 7 11-7V21l-11-7Z"/></svg>`
 };
 
 const AIRCRAFT_VISUALS = {
@@ -335,7 +351,10 @@ const state = {
   satTimer: null,
   selectedSatellitePath: [],
   ambienceOn: false,
-  ambienceHandle: null
+  ambienceHandle: null,
+  selectedMarkerId: REGIONS[0].id,
+  activeTab: 'brief',
+  freeSpin: false
 };
 
 const dom = {
@@ -352,6 +371,7 @@ const dom = {
   threatSummary: document.getElementById('threatSummary'),
   refreshIntelBtn: document.getElementById('refreshIntelBtn'),
   refreshTracksBtn: document.getElementById('refreshTracksBtn'),
+  spinToggleBtn: document.getElementById('spinToggleBtn'),
   ambienceBtn: document.getElementById('ambienceBtn'),
   regionButtons: document.getElementById('regionButtons'),
   layerButtons: document.getElementById('layerButtons'),
@@ -373,7 +393,8 @@ const dom = {
   status: document.getElementById('status'),
   results: document.getElementById('results'),
   airModeBadge: document.getElementById('airModeBadge'),
-  airRosterMode: document.getElementById('airRosterMode')
+  airRosterMode: document.getElementById('airRosterMode'),
+  tabButtons: document.getElementById('tabButtons')
 };
 
 boot();
@@ -386,6 +407,8 @@ function boot() {
   buildLayerButtons();
   buildCategoryButtons();
   renderHotspotLists();
+  attachTabEvents();
+  switchTab('brief');
   startClock();
   bootGlobe();
   attachEvents();
@@ -405,6 +428,7 @@ function attachEvents() {
     loadSatelliteCatalog(true);
   });
 
+  dom.spinToggleBtn.addEventListener('click', toggleFreeSpin);
   dom.ambienceBtn.addEventListener('click', toggleAmbience);
 
   dom.topicForm.addEventListener('submit', event => {
@@ -460,6 +484,32 @@ function buildCategoryButtons() {
   });
 }
 
+
+function attachTabEvents() {
+  dom.tabButtons?.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  dom.tabButtons?.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('[data-tab-panel]').forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.tabPanel === tab);
+  });
+}
+
+function toggleFreeSpin() {
+  state.freeSpin = !state.freeSpin;
+  if (state.globe?.controls()) {
+    state.globe.controls().autoRotate = state.freeSpin;
+  }
+  dom.spinToggleBtn.textContent = `Free spin: ${state.freeSpin ? 'on' : 'off'}`;
+  setOpsStatus(state.freeSpin ? 'Free spin enabled. Manual drag still works.' : 'Free spin disabled. Globe now stays put until you move it.');
+}
+
 function renderHotspotLists() {
   renderConflictList();
   renderEwList();
@@ -489,7 +539,7 @@ function hotspotCard(item, tone) {
   card.innerHTML = `
     <div class="hotspot-top">
       <div class="roster-left">
-        <div class="icon-chip ${tone}">${ICONS[tone]}</div>
+        <div class="icon-chip ${tone}">${tone === 'ew' ? MARKER_GLYPHS.ew : MARKER_GLYPHS.conflict}</div>
         <div>
           <div class="item-title">${escapeHtml(item.label)}</div>
           <div class="item-sub">${escapeHtml(item.actors)}</div>
@@ -520,13 +570,13 @@ function startClock() {
 
 function bootGlobe() {
   const container = document.getElementById('globeViz');
-  state.globe = GlobeFactory()(container)
-    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-    .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-    .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+  state.globe = GlobeFactory({ rendererConfig: { antialias: true, alpha: true } })(container)
+    .globeImageUrl('earth-blue-marble.jpg')
+    .bumpImageUrl('earth-topology.png')
+    .backgroundImageUrl('night-sky.png')
     .showAtmosphere(true)
-    .atmosphereColor('#7bdfff')
-    .atmosphereAltitude(0.16)
+    .atmosphereColor('#67ceff')
+    .atmosphereAltitude(0.15)
     .pointLabel(buildPointLabel)
     .pointColor(point => point.color)
     .pointAltitude(point => point.altitude ?? 0.02)
@@ -546,17 +596,17 @@ function bootGlobe() {
     .htmlElement(buildHtmlMarker)
     .arcsData([])
     .arcColor(arc => arc.color || '#74d3ff')
-    .arcStroke(() => 0.4)
+    .arcStroke(arc => arc.stroke ?? 0.55)
     .arcAltitude(arc => arc.altitude ?? 0.08)
-    .arcDashLength(0.45)
-    .arcDashGap(1)
-    .arcDashAnimateTime(2400)
+    .arcDashLength(0.36)
+    .arcDashGap(1.2)
+    .arcDashAnimateTime(2800)
     .pathsData([])
     .pathColor(path => path.color || '#ffcd63')
-    .pathStroke(0.5)
-    .pathDashLength(0.2)
-    .pathDashGap(0.05)
-    .pathDashAnimateTime(2800)
+    .pathStroke(path => path.stroke ?? 0.65)
+    .pathDashLength(0.18)
+    .pathDashGap(0.06)
+    .pathDashAnimateTime(3400)
     .ringsData([])
     .ringMaxRadius(ring => ring.maxR)
     .ringPropagationSpeed(ring => ring.propagationSpeed)
@@ -565,34 +615,69 @@ function bootGlobe() {
     .width(container.clientWidth)
     .height(container.clientHeight);
 
-  state.globe.controls().autoRotate = true;
-  state.globe.controls().autoRotateSpeed = 0.22;
+  const controls = state.globe.controls();
+  controls.autoRotate = false;
+  controls.autoRotateSpeed = 0.14;
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.minDistance = 115;
+  controls.maxDistance = 420;
+  controls.rotateSpeed = 0.7;
+  controls.zoomSpeed = 0.8;
+
+  const renderer = state.globe.renderer?.();
+  renderer?.setPixelRatio?.(Math.min(2.25, window.devicePixelRatio || 1));
+
+  try {
+    const material = state.globe.globeMaterial?.();
+    if (material) {
+      material.bumpScale = 7;
+      material.shininess = 12;
+    }
+  } catch (error) {
+    console.warn('globe material tuning skipped', error);
+  }
 
   window.addEventListener('resize', () => {
     state.globe.width(container.clientWidth);
     state.globe.height(container.clientHeight);
+    state.globe.renderer?.()?.setPixelRatio?.(Math.min(2, window.devicePixelRatio || 1));
   });
 }
 
 function buildPointLabel(point) {
   const title = escapeHtml(point.label || point.name || point.callsign || 'Object');
   if (point.kind === 'region') return `${title}<br/>Tap for regional brief`;
-  if (point.kind === 'conflict') return `${title}<br/>Conflict zone`;
-  if (point.kind === 'ew') return `${title}<br/>GNSS / EW interference`;
+  if (point.kind === 'conflict') return `${title}<br/>Conflict hotspot`;
+  if (point.kind === 'ew') return `${title}<br/>Reported GNSS / EW disruption`;
   return title;
 }
 
 function buildHtmlMarker(item) {
   const marker = document.createElement('div');
-  marker.className = `marker ${item.kind}`;
-  marker.innerHTML = ICONS[item.kind === 'aircraft' ? 'aircraft' : item.kind === 'satellite' ? 'satellite' : item.kind];
+  marker.className = `marker marker-${item.kind} ${state.selectedMarkerId === item.id ? 'is-selected' : ''}`;
+  marker.style.setProperty('--marker-rotation', `${Math.round(item.heading || 0)}deg`);
   marker.title = item.label || item.name || item.callsign || '';
+
+  const shell = document.createElement('div');
+  shell.className = 'marker-shell';
+
+  const glyph = document.createElement('div');
+  glyph.className = 'marker-glyph';
+  glyph.innerHTML = buildMarkerGlyph(item);
+  shell.appendChild(glyph);
+  marker.appendChild(shell);
 
   if (item.labelText) {
     const label = document.createElement('div');
     label.className = 'marker-label';
     label.textContent = item.labelText;
     marker.appendChild(label);
+  }
+
+  if (state.selectedMarkerId === item.id) {
+    marker.appendChild(buildMarkerPopup(item));
   }
 
   marker.addEventListener('click', event => {
@@ -606,6 +691,94 @@ function buildHtmlMarker(item) {
   });
 
   return marker;
+}
+
+function buildMarkerGlyph(item) {
+  if (item.kind === 'aircraft') return MARKER_GLYPHS[item.aircraftVisual] || MARKER_GLYPHS.airliner;
+  if (item.kind === 'satellite') return MARKER_GLYPHS.satellite;
+  if (item.kind === 'conflict') return MARKER_GLYPHS.conflict;
+  if (item.kind === 'ew') return MARKER_GLYPHS.ew;
+  return MARKER_GLYPHS.region;
+}
+
+function buildHeroVisual(kindKey) {
+  return `<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">${buildMarkerGlyph({ kind: kindKey === 'region' ? 'region' : kindKey === 'satellite' ? 'satellite' : kindKey === 'conflict' ? 'conflict' : kindKey === 'ew' ? 'ew' : 'aircraft', aircraftVisual: kindKey })}</svg>`;
+}
+
+function buildMarkerPopup(item) {
+  const popup = document.createElement('div');
+  popup.className = `marker-popup ${markerPopupSideClass(item)}`;
+
+  if (item.kind === 'aircraft') {
+    popup.innerHTML = `
+      <div class="popup-topline">
+        <div class="popup-type">Aircraft</div>
+        <div class="popup-badge">${escapeHtml(state.aircraftMode === 'live' ? 'track' : 'fused')}</div>
+      </div>
+      <div class="popup-title">${escapeHtml(item.callsign)}</div>
+      <div class="popup-copy">${escapeHtml(item.aircraftTypeLabel)} over ${escapeHtml(item.country)}.</div>
+      <div class="popup-grid">
+        <div class="popup-stat"><span>Alt</span><strong>${escapeHtml(formatFeet(item.altFeet))}</strong></div>
+        <div class="popup-stat"><span>Speed</span><strong>${escapeHtml(formatKts(item.speedKts))}</strong></div>
+        <div class="popup-stat"><span>Heading</span><strong>${escapeHtml(String(Math.round(item.heading || 0)).padStart(3, '0'))}°</strong></div>
+        <div class="popup-stat"><span>V-Rate</span><strong>${escapeHtml(formatFpm(item.verticalRateFpm))}</strong></div>
+      </div>
+    `;
+    return popup;
+  }
+
+  if (item.kind === 'satellite') {
+    popup.innerHTML = `
+      <div class="popup-topline">
+        <div class="popup-type">Satellite</div>
+        <div class="popup-badge">${escapeHtml(item.groupLabel)}</div>
+      </div>
+      <div class="popup-title">${escapeHtml(trimText(item.name, 24))}</div>
+      <div class="popup-copy">Public TLE-propagated orbital track.</div>
+      <div class="popup-grid">
+        <div class="popup-stat"><span>Alt</span><strong>${escapeHtml(formatKm(item.altKm))}</strong></div>
+        <div class="popup-stat"><span>Lat</span><strong>${escapeHtml(item.lat.toFixed(1))}°</strong></div>
+        <div class="popup-stat"><span>Lon</span><strong>${escapeHtml(item.lng.toFixed(1))}°</strong></div>
+        <div class="popup-stat"><span>Mode</span><strong>Track</strong></div>
+      </div>
+    `;
+    return popup;
+  }
+
+  if (item.kind === 'conflict' || item.kind === 'ew') {
+    popup.innerHTML = `
+      <div class="popup-topline">
+        <div class="popup-type">${escapeHtml(item.kind === 'conflict' ? 'Conflict' : 'GNSS / EW')}</div>
+        <div class="popup-badge">SEV-${escapeHtml(item.severity)}</div>
+      </div>
+      <div class="popup-title">${escapeHtml(item.label)}</div>
+      <div class="popup-copy">${escapeHtml(trimText(item.summary, 120))}</div>
+      <div class="popup-grid">
+        <div class="popup-stat"><span>Watch</span><strong>${escapeHtml(trimText(item.watch, 32))}</strong></div>
+        <div class="popup-stat"><span>Layer</span><strong>${escapeHtml(item.kind === 'conflict' ? 'Hotspot' : 'Disruption')}</strong></div>
+      </div>
+    `;
+    return popup;
+  }
+
+  const region = REGIONS.find(regionItem => regionItem.id === item.id) || item;
+  popup.innerHTML = `
+    <div class="popup-topline">
+      <div class="popup-type">Region</div>
+      <div class="popup-badge">${escapeHtml(riskLabel(computeThreatScore(region, getRegionalHotspots(region), state.stories, state.aircraft, state.satPoints)).toUpperCase())}</div>
+    </div>
+    <div class="popup-title">${escapeHtml(region.label)}</div>
+    <div class="popup-copy">${escapeHtml(trimText(region.theme || 'Regional focus.', 120))}</div>
+    <div class="popup-grid">
+      <div class="popup-stat"><span>Conflicts</span><strong>${escapeHtml(String(getRegionalHotspots(region).filter(entry => entry.kind === 'conflict').length))}</strong></div>
+      <div class="popup-stat"><span>EW</span><strong>${escapeHtml(String(getRegionalHotspots(region).filter(entry => entry.kind === 'ew').length))}</strong></div>
+    </div>
+  `;
+  return popup;
+}
+
+function markerPopupSideClass(item) {
+  return item.lng > 40 ? 'popup-left' : '';
 }
 
 function toggleLayer(layerId) {
@@ -655,6 +828,8 @@ function selectRegion(region) {
   activateRegionButton(region.id);
   activateCategoryButton('');
   dom.regionPill.textContent = region.label.toUpperCase();
+  state.selectedMarkerId = region.id;
+  switchTab('brief');
   focusRegion(region);
   refreshAirPicture(true);
   fetchIntel(region.query, region.label, region.id);
@@ -663,11 +838,23 @@ function selectRegion(region) {
 }
 
 function focusRegion(region) {
-  state.globe?.pointOfView({ lat: region.lat, lng: region.lng, altitude: 1.55 }, 1200);
+  state.globe?.pointOfView({ lat: region.lat, lng: region.lng, altitude: 1.38 }, 1200);
 }
 
 function selectObject(item) {
   state.selectedObject = item;
+  state.selectedMarkerId = item.id;
+
+  if (item.kind === 'satellite') {
+    switchTab('space');
+  } else if (item.kind === 'aircraft') {
+    switchTab('air');
+  } else if (item.kind === 'conflict' || item.kind === 'ew') {
+    switchTab('watch');
+  } else {
+    switchTab('brief');
+  }
+
   renderTelemetry(item);
   if (item.kind === 'satellite') {
     state.selectedSatellitePath = buildSatellitePath(item);
@@ -677,6 +864,7 @@ function selectObject(item) {
   updateBrief();
   updateGlobe();
 }
+
 
 async function fetchIntel(query, label, selectionId) {
   dom.feedTitle.textContent = `${label} evidence feed`;
@@ -758,37 +946,49 @@ function updateBrief() {
   const watchBullets = buildWatchBullets(region, regionalHotspots, keywordSummary, state.aircraft, state.satPoints);
   const posture = buildPostureText(region, regionalHotspots, keywordSummary);
   const sourceNote = state.stories.length
-    ? `Feed draw: ${state.stories.length} source items in the last 18 hours.`
-    : 'Feed draw: fallback mode using built-in conflict and EW watchlists.';
+    ? `${state.stories.length} source item${state.stories.length === 1 ? '' : 's'} in the last 18 hours.`
+    : 'Standing brief mode using built-in watch deck and current tracks.';
+  const airMix = summarizeAircraftMix(state.aircraft);
+  const ewWatch = regionalHotspots.filter(item => item.kind === 'ew').map(item => item.label).join(', ') || 'No major EW hotspot pinned in this region deck.';
 
   dom.briefTitle.textContent = `Presidential brief // ${region.label}`;
-  dom.briefBadge.textContent = `SEV-${severityFromScore(riskScore)}`;
+  dom.briefBadge.textContent = `${riskLabel(riskScore).toUpperCase()} // SEV-${severityFromScore(riskScore)}`;
   dom.briefTimestamp.textContent = `Updated ${new Date().toUTCString()} // ${sourceNote}`;
   dom.threatScore.textContent = String(riskScore);
   dom.threatSummary.textContent = theme;
 
   dom.briefPanel.innerHTML = `
-    <div class="brief-lead">
-      ${escapeHtml(region.label)} remains a ${riskLabel(riskScore).toLowerCase()} watch sector. ${escapeHtml(theme)} ${escapeHtml(posture)}
+    <div class="brief-hero">
+      <div class="brief-kicker">Executive summary</div>
+      <div class="brief-lead">${escapeHtml(region.label)} remains a ${escapeHtml(riskLabel(riskScore).toLowerCase())} watch sector. ${escapeHtml(theme)} ${escapeHtml(posture)}</div>
     </div>
     <div class="brief-grid">
       <div class="brief-block">
-        <div class="brief-block-title">Assessment</div>
+        <div class="brief-block-title">Why it matters</div>
         <div class="small muted">${escapeHtml(buildAssessmentSentence(region, regionalHotspots, keywordSummary))}</div>
       </div>
       <div class="brief-block">
-        <div class="brief-block-title">Air / orbit picture</div>
-        <div class="small muted">${escapeHtml(buildAirOrbitSentence(state.aircraft, state.satPoints, state.aircraftMode))}</div>
+        <div class="brief-block-title">Air picture</div>
+        <div class="small muted">${escapeHtml(airMix.summary)}</div>
+      </div>
+      <div class="brief-block">
+        <div class="brief-block-title">Conflict drivers</div>
+        <div class="small muted">${escapeHtml(regionalHotspots.filter(item => item.kind === 'conflict').map(item => item.label).join(', ') || 'No curated conflict hotspot currently pinned in this region deck.')}</div>
+      </div>
+      <div class="brief-block">
+        <div class="brief-block-title">EW / access</div>
+        <div class="small muted">${escapeHtml(ewWatch)}</div>
       </div>
     </div>
     <div class="brief-block">
-      <div class="brief-block-title">Watch items</div>
+      <div class="brief-block-title">What to watch next</div>
       <ul class="brief-bullets">
         ${watchBullets.map(bullet => `<li>${escapeHtml(bullet)}</li>`).join('')}
       </ul>
     </div>
   `;
 }
+
 
 function buildAssessmentSentence(region, hotspots, keywordSummary) {
   const severe = hotspots.filter(item => item.severity >= 4);
@@ -810,6 +1010,24 @@ function buildAirOrbitSentence(aircraft, satellites, mode) {
       ? 'Regional air picture is in simulated fallback mode with animated track cards.'
       : 'Regional air picture is still warming up.';
   return `${airModeText} Current board shows ${aircraft.length} aircraft icons and ${satellites.length} satellites in the tracked watchlist.`;
+}
+
+
+function summarizeAircraftMix(aircraft) {
+  if (!aircraft.length) {
+    return { summary: 'No aircraft are loaded for this sector yet.' };
+  }
+  const counts = {};
+  aircraft.forEach(item => {
+    counts[item.aircraftTypeLabel] = (counts[item.aircraftTypeLabel] || 0) + 1;
+  });
+  const top = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([label, count]) => `${count}× ${label}`);
+  return {
+    summary: `${state.aircraftMode === 'live' ? 'Live-compatible' : 'Fused fallback'} regional picture shows ${aircraft.length} tracks, led by ${top.join(', ')}.`
+  };
 }
 
 function buildWatchBullets(region, hotspots, keywordSummary, aircraft, satellites) {
@@ -1178,13 +1396,13 @@ function renderAircraftRoster() {
     card.innerHTML = `
       <div class="roster-top">
         <div class="roster-left">
-          <div class="icon-chip aircraft">${ICONS.aircraft}</div>
+          <div class="icon-chip aircraft">${buildMarkerGlyph(item)}</div>
           <div>
             <div class="item-title">${escapeHtml(item.callsign)}</div>
             <div class="item-sub">${escapeHtml(item.aircraftTypeLabel)} // ${escapeHtml(item.country)}</div>
           </div>
         </div>
-        <div class="item-badge">${item.sourceMode === 'sim' || state.aircraftMode === 'sim' ? 'SIM' : 'LIVE'}</div>
+        <div class="item-badge ${state.aircraftMode === 'live' ? '' : 'warn'}">${state.aircraftMode === 'live' ? 'LIVE' : 'FUSED'}</div>
       </div>
       <div class="item-meta">
         <div>ALT ${escapeHtml(formatFeet(item.altFeet))}</div>
@@ -1199,6 +1417,7 @@ function renderAircraftRoster() {
 
   dom.aircraftCount.textContent = String(state.aircraft.length);
 }
+
 
 async function loadSatelliteCatalog(force = false) {
   const cached = readSatCache();
@@ -1339,7 +1558,7 @@ function renderSatelliteRoster() {
     card.innerHTML = `
       <div class="roster-top">
         <div class="roster-left">
-          <div class="icon-chip satellite">${ICONS.satellite}</div>
+          <div class="icon-chip satellite">${buildMarkerGlyph(item)}</div>
           <div>
             <div class="item-title">${escapeHtml(trimText(item.name, 34))}</div>
             <div class="item-sub">${escapeHtml(item.groupLabel)}</div>
@@ -1358,6 +1577,7 @@ function renderSatelliteRoster() {
     dom.satelliteRoster.appendChild(card);
   });
 }
+
 
 function updateGlobe() {
   if (!state.globe) return;
@@ -1476,41 +1696,41 @@ function renderTelemetry(item) {
 
   if (item.kind === 'aircraft') {
     visualKey = item.aircraftVisual || 'airliner';
-    badge = state.aircraftMode === 'live' ? 'AIRCRAFT' : 'AIRCRAFT / SIM';
-    copy = `${item.aircraftTypeLabel} track visible over ${item.country}. Tap the flightline card or globe icon to keep this object pinned while the rest of the picture updates.`;
+    badge = state.aircraftMode === 'live' ? 'AIR TRACK' : 'AIR TRACK / FUSED';
+    copy = `${item.aircraftTypeLabel} track visible over ${item.country}. Direct symbol popup is pinned on-globe, while this card gives the deeper board read.`;
     stats = [
       ['Callsign', item.callsign],
-      ['Type', item.aircraftTypeLabel],
+      ['Track class', item.aircraftTypeLabel],
       ['Altitude', formatFeet(item.altFeet)],
       ['Speed', formatKts(item.speedKts)],
       ['Heading', `${Math.round(item.heading || 0).toString().padStart(3, '0')}°`],
       ['Vertical rate', formatFpm(item.verticalRateFpm)],
       ['Country', item.country],
-      ['Source', state.aircraftMode === 'live' ? 'Live-compatible' : 'Simulated fallback']
+      ['Source', state.aircraftMode === 'live' ? 'Live-compatible / heuristic type map' : 'Fused fallback picture']
     ];
     notes = [
-      'Aircraft visuals are compressed so tracks stay readable on a phone-sized globe.',
+      'Track type labels are behavior/category based unless the callsign/operator pattern makes the class obvious.',
       state.aircraftMode === 'live'
-        ? 'Type labels come from category/behavior mapping, not full tail-specific identification.'
-        : 'Simulation fallback preserves the experience when static-hosted direct feeds do not answer cleanly.'
+        ? 'Live OpenSky pulls can be sparse or rate-limited on static hosting, so the board blends hard data with UI-friendly interpretation.'
+        : 'Fallback mode is deliberate: the visual experience stays strong even when static-hosted public aircraft feeds fail.'
     ];
   } else if (item.kind === 'satellite') {
     visualKey = 'satellite';
-    badge = 'SATELLITE';
-    copy = `${item.groupLabel} object propagated locally in your browser from TLE data. The gold dashed trail shows the short-term ground track for the selected satellite.`;
+    badge = 'ORBITAL';
+    copy = `${item.groupLabel} object propagated locally in-browser from public TLE data. The selected orbital path is rendered on the globe as a short projected track.`;
     stats = [
       ['Name', trimText(item.name, 30)],
       ['Group', item.groupLabel],
       ['Altitude', formatKm(item.altKm)],
       ['Latitude', `${item.lat.toFixed(2)}°`],
       ['Longitude', `${item.lng.toFixed(2)}°`],
-      ['Visual alt', item.visualAltitude.toFixed(3)],
+      ['Visual altitude', item.visualAltitude.toFixed(3)],
       ['Catalog mode', 'TLE / propagated'],
-      ['Track', 'Short-term projected']
+      ['Refresh', 'Cached public catalog']
     ];
     notes = [
-      'Orbital track is a visual planning aid, not a precision conjunction tool.',
-      'Catalog refresh is intentionally throttled to avoid hammering public TLE sources.'
+      'Orbital path is a planning and orientation visual, not a precision conjunction tool.',
+      'Catalog refresh is intentionally throttled so the site does not hammer public TLE infrastructure.'
     ];
   } else if (item.kind === 'conflict') {
     visualKey = 'conflict';
@@ -1520,11 +1740,11 @@ function renderTelemetry(item) {
       ['Zone', item.label],
       ['Severity', `SEV-${item.severity}`],
       ['Actors', item.actors],
-      ['Watch', item.watch],
+      ['What to watch', item.watch],
       ['Region link', item.regionIds.join(', ')],
       ['Layer', 'Conflict watch']
     ];
-    notes = [item.source, 'This hotspot is manually curated so the globe stays readable and the brief stays useful.'];
+    notes = [item.source, 'Curated hotspots keep the map readable and keep the brief from turning into noise.'];
   } else if (item.kind === 'ew') {
     visualKey = 'ew';
     badge = 'GNSS / EW';
@@ -1533,35 +1753,35 @@ function renderTelemetry(item) {
       ['Zone', item.label],
       ['Severity', `SEV-${item.severity}`],
       ['Risk', 'Navigation integrity degraded'],
-      ['Watch', item.watch],
+      ['What to watch', item.watch],
       ['Region link', item.regionIds.join(', ')],
       ['Layer', 'EW / GNSS watch']
     ];
-    notes = [item.source, 'This layer is designed to show where signal disruption matters operationally, not just where it exists abstractly.'];
+    notes = [item.source, 'This layer is about operational consequence: route safety, signal trust, and access friction.'];
   } else {
     visualKey = 'region';
     badge = 'REGION';
-    copy = `${item.label} is the current focus sector. Use the brief, flightline, and hotspot cards together instead of treating the globe like a single-source map.`;
+    copy = `${item.label} is the current focus sector. The right rail is built so the question 'what is going on here right now?' can be answered fast.`;
     stats = [
       ['Region', item.label],
       ['Latitude', `${item.lat.toFixed(1)}°`],
       ['Longitude', `${item.lng.toFixed(1)}°`],
       ['Theme', item.theme],
-      ['Query', item.query],
+      ['Evidence query', item.query],
       ['BBox', `${item.bbox.lamin}/${item.bbox.lamax} // ${item.bbox.lomin}/${item.bbox.lomax}`]
     ];
-    notes = ['The current region drives the brief, local aircraft picture, and hotspot focus.', 'Use filter buttons to re-task the evidence feed without changing the geographic focus.'];
+    notes = ['This region drives the presidential brief, local flightline, and the hotspot emphasis.', 'Use filter buttons to re-task the brief without abandoning the geographic sector.'];
   }
 
   dom.selectedKindBadge.textContent = badge;
   dom.telemetryPanel.innerHTML = `
     <div class="telemetry-hero">
       <div class="telemetry-overlay">
-        <div class="telemetry-eyebrow">${escapeHtml(AIRCRAFT_VISUALS[visualKey].label)}</div>
+        <div class="telemetry-eyebrow">${escapeHtml(badge)}</div>
         <h3 class="telemetry-title">${escapeHtml(title)}</h3>
         <div class="telemetry-copy">${escapeHtml(copy)}</div>
       </div>
-      <div class="telemetry-silhouette">${AIRCRAFT_VISUALS[visualKey].svg}</div>
+      <div class="telemetry-silhouette">${heroSvgForKey(visualKey)}</div>
     </div>
     <div class="telemetry-grid">
       ${stats.map(([label, value]) => `
@@ -1575,6 +1795,19 @@ function renderTelemetry(item) {
       ${notes.map(note => `<div>${escapeHtml(note)}</div>`).join('<br/>')}
     </div>
   `;
+}
+
+function heroSvgForKey(visualKey) {
+  const svg = visualKey === 'region'
+    ? MARKER_GLYPHS.region
+    : visualKey === 'satellite'
+      ? MARKER_GLYPHS.satellite
+      : visualKey === 'conflict'
+        ? MARKER_GLYPHS.conflict
+        : visualKey === 'ew'
+          ? MARKER_GLYPHS.ew
+          : MARKER_GLYPHS[visualKey] || MARKER_GLYPHS.airliner;
+  return `<div class="hero-glyph">${svg}</div>`;
 }
 
 function toggleAmbience() {
