@@ -19,8 +19,8 @@
 */
 
 const SITE = {
-  title: 'OSINT Globe',
-  tagline: 'Tap a region, press a category, or type a topic.'
+  title: 'Cresswells Intel Watch',
+  tagline: 'Interactive Global OSINT feed.'
 };
 
 const REGIONS = [
@@ -155,8 +155,8 @@ let globeInstance = null;
 let currentSelection = {
   type: 'starter',
   id: 'global-pulse',
-  label: 'Global OSINT Pulse',
-  query: '(conflict OR protest OR wildfire OR cyberattack OR earthquake)'
+  label: 'Global Intel Feed',
+  query: '(drone OR fighter jet OR air defense OR missile OR cyberattack OR satellite)'
 };
 
 siteTitleEl.textContent = SITE.title;
