@@ -1,0 +1,2333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111827" />
+  <title>Cress WOD</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #131a2d;
+      --panel: rgba(17, 24, 39, 0.92);
+      --panel-2: rgba(24, 32, 54, 0.94);
+      --border: rgba(255,255,255,0.1);
+      --text: #edf2ff;
+      --muted: #a8b3cf;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --accent-3: #34d399;
+      --danger: #fb7185;
+      --warning: #fbbf24;
+      --shadow: 0 18px 45px rgba(0,0,0,0.25);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --max: 1320px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.14), transparent 26%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.12), transparent 24%),
+        linear-gradient(180deg, #091120 0%, #0b1020 40%, #0c1426 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .container {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(16px);
+      background: rgba(8, 12, 24, 0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .topbar-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      background: linear-gradient(135deg, rgba(125,211,252,0.25), rgba(167,139,250,0.25));
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-copy h1 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand-copy p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .nav a,
+    .ghost-btn,
+    .chip,
+    .segmented button,
+    .auth-tab,
+    .small-btn,
+    .remove-btn,
+    .link-btn {
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font: inherit;
+    }
+
+    .nav a:hover,
+    .ghost-btn:hover,
+    .chip:hover,
+    .segmented button:hover,
+    .auth-tab:hover,
+    .small-btn:hover,
+    .remove-btn:hover,
+    .link-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .hero {
+      padding: 36px 0 18px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .hero-card,
+    .panel,
+    .result-card,
+    .support-card,
+    .account-card,
+    .saved-card,
+    .stat-card,
+    .mini-card,
+    .wod-card,
+    .empty-state,
+    .toast {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .hero-card {
+      padding: 28px;
+      overflow: hidden;
+      position: relative;
+      min-height: 100%;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -100px -100px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(125,211,252,0.15), transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125,211,252,0.08);
+      color: var(--accent);
+      border: 1px solid rgba(125,211,252,0.16);
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      max-width: 14ch;
+    }
+
+    .hero-copy {
+      color: var(--muted);
+      max-width: 62ch;
+      margin: 16px 0 22px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .primary-btn {
+      border: 0;
+      color: #041220;
+      background: linear-gradient(135deg, var(--accent), #c4b5fd);
+      padding: 13px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+      box-shadow: 0 10px 25px rgba(125,211,252,0.18);
+      font: inherit;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 28px rgba(125,211,252,0.25);
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stat-card,
+    .mini-card {
+      padding: 20px;
+    }
+
+    .stat-card h3,
+    .mini-card h3,
+    .panel h2,
+    .result-card h2,
+    .support-card h2,
+    .account-card h2,
+    .saved-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .stat-pill {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .stat-pill strong {
+      display: block;
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+    }
+
+    .section {
+      padding: 18px 0;
+    }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel,
+    .result-card,
+    .support-card,
+    .account-card,
+    .saved-card {
+      padding: 24px;
+    }
+
+    .panel-header,
+    .result-header,
+    .support-header,
+    .account-header,
+    .saved-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .panel-header p,
+    .result-header p,
+    .support-header p,
+    .account-header p,
+    .saved-header p,
+    .label-note,
+    .muted,
+    .tiny {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .segmented {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .segmented button.active,
+    .auth-tab.active {
+      background: linear-gradient(135deg, rgba(125,211,252,0.18), rgba(167,139,250,0.18));
+      border-color: rgba(167,139,250,0.28);
+    }
+
+    form {
+      margin: 0;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field-group h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chip-grid,
+    .muscle-grid,
+    .quick-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      text-align: left;
+    }
+
+    .chip input {
+      accent-color: var(--accent);
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .chip.active {
+      background: rgba(125,211,252,0.08);
+      border-color: rgba(125,211,252,0.25);
+    }
+
+    .chip span small {
+      display: block;
+      color: var(--muted);
+      margin-top: 2px;
+      font-size: 0.78rem;
+    }
+
+    .select,
+    .text-input,
+    textarea {
+      width: 100%;
+      border-radius: 16px;
+      padding: 14px 15px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .select:focus,
+    .text-input:focus,
+    textarea:focus {
+      border-color: rgba(125,211,252,0.32);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .range-wrap {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .range-header,
+    .row-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .actions-row,
+    .result-actions,
+    .auth-actions,
+    .saved-actions,
+    .support-actions,
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .result-card {
+      position: sticky;
+      top: 88px;
+    }
+
+    .result-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .wod-card {
+      padding: 18px;
+      margin-bottom: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .wod-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .wod-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .exercise-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .exercise-item {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .exercise-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .exercise-top strong {
+      font-size: 1rem;
+    }
+
+    .exercise-pill {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+      color: #dbeafe;
+      background: rgba(59,130,246,0.16);
+      border: 1px solid rgba(96,165,250,0.18);
+    }
+
+    .exercise-notes {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      border-style: dashed;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .split-grid {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+
+    .saved-list,
+    .history-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .saved-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .saved-item h4 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+    }
+
+    .saved-item p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.92rem;
+    }
+
+    .saved-item .row-between {
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .remove-btn {
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--danger);
+      background: rgba(251,113,133,0.08);
+      border-color: rgba(251,113,133,0.16);
+    }
+
+    .account-layout {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: 0.92fr 1.08fr;
+      align-items: start;
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .auth-panel {
+      display: none;
+    }
+
+    .auth-panel.active {
+      display: block;
+    }
+
+    .auth-note,
+    .warning-note {
+      padding: 14px 16px;
+      border-radius: 16px;
+      line-height: 1.65;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      margin-top: 14px;
+    }
+
+    .warning-note {
+      border-color: rgba(251,191,36,0.2);
+      background: rgba(251,191,36,0.08);
+      color: #fde68a;
+    }
+
+    .account-status {
+      display: grid;
+      gap: 14px;
+    }
+
+    .status-banner {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(52,211,153,0.08);
+      border: 1px solid rgba(52,211,153,0.18);
+    }
+
+    .status-banner strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .support-grid {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      align-items: start;
+    }
+
+    .qr-wrap {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      text-align: center;
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .qr-frame {
+      width: min(100%, 260px);
+      aspect-ratio: 1;
+      padding: 14px;
+      border-radius: 24px;
+      background: white;
+      display: grid;
+      place-items: center;
+    }
+
+    .qr-frame img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .footer {
+      padding: 34px 0 52px;
+      color: var(--muted);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      padding: 14px 16px;
+      z-index: 80;
+      max-width: 320px;
+      transform: translateY(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.22s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1180px) {
+      .hero-grid,
+      .grid-main,
+      .split-grid,
+      .account-layout,
+      .support-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .result-card {
+        position: static;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .field-row,
+      .chip-grid,
+      .muscle-grid,
+      .quick-grid,
+      .stat-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .chip-grid,
+      .muscle-grid,
+      .quick-grid,
+      .field-row,
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-card,
+      .panel,
+      .result-card,
+      .support-card,
+      .account-card,
+      .saved-card,
+      .stat-card,
+      .mini-card {
+        padding: 18px;
+      }
+
+      .hero-title {
+        font-size: 2rem;
+      }
+
+      .nav {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <svg viewBox="0 0 72 72" role="img" aria-label="Deadlifting athlete icon">
+            <defs>
+              <linearGradient id="badgeLiftStroke" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7dd3fc" />
+                <stop offset="100%" stop-color="#c4b5fd" />
+              </linearGradient>
+              <linearGradient id="badgeLiftFill" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.22" />
+                <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0.22" />
+              </linearGradient>
+            </defs>
+            <circle cx="36" cy="36" r="31" fill="url(#badgeLiftFill)" opacity="0.85" />
+            <circle cx="36" cy="36" r="31" fill="none" stroke="url(#badgeLiftStroke)" stroke-opacity="0.25" stroke-width="1.4" />
+            <g fill="none" stroke="url(#badgeLiftStroke)" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 52 H62" stroke-width="3.2" />
+              <path d="M18 52 V42" stroke-width="3.2" />
+              <path d="M13 52 V43" stroke-width="3.2" />
+              <path d="M54 52 V42" stroke-width="3.2" />
+              <path d="M59 52 V43" stroke-width="3.2" />
+              <circle cx="38" cy="18" r="5.2" stroke-width="3.1" />
+              <path d="M38 23 L31 31 L29 41" stroke-width="3.2" />
+              <path d="M31 31 L42 36 L48 41" stroke-width="3.2" />
+              <path d="M31 31 L22 37" stroke-width="3.2" />
+              <path d="M30 40 L24 53" stroke-width="3.2" />
+              <path d="M47 41 L45 53" stroke-width="3.2" />
+              <path d="M21 37 L19 46" stroke-width="2.8" />
+              <path d="M48 41 L52 47" stroke-width="2.8" />
+              <path d="M26 28 Q35 22 45 27" stroke-width="2.4" opacity="0.9" />
+            </g>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1>Cress WOD</h1>
+          <p>Random workouts based on your gear, your target, and your mood.</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#generator">Generator</a>
+        <a href="#saved">Saved</a>
+        <a href="#account">Account</a>
+        <a href="#support">Support</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <article class="hero-card">
+          <div class="eyebrow">Single-file site • GitHub Pages friendly</div>
+          <h2 class="hero-title">Generate clean, random workouts without the clutter.</h2>
+          <p class="hero-copy">
+            Pick what equipment you have, dial in a muscle focus if you want one, then let Cress WOD build a session with warm-up, main work, finisher, and cooldown.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#generator">Build a workout</a>
+            <button class="ghost-btn" id="surpriseHeroBtn" type="button">Surprise me</button>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-pill">
+              <strong id="dbCount">0+</strong>
+              <span class="muted">exercise options</span>
+            </div>
+            <div class="stat-pill">
+              <strong>3 modes</strong>
+              <span class="muted">equipment, muscle, hybrid</span>
+            </div>
+            <div class="stat-pill">
+              <strong>1 file</strong>
+              <span class="muted">HTML, CSS, and JS together</span>
+            </div>
+          </div>
+        </article>
+
+        <div class="hero-side">
+          <article class="stat-card">
+            <h3>Today’s WOD vibe</h3>
+            <p class="muted" id="dailyVibe">Loading your daily seed...</p>
+          </article>
+          <article class="mini-card">
+            <h3>Why this setup is easy to ship</h3>
+            <p class="muted">
+              Drop this file in your repo as <span class="mono">index.html</span>, enable GitHub Pages, and you’re live. No build step, no framework drama, no chasing a dozen folders around.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="generator">
+      <div class="container grid-main">
+        <section class="panel" aria-labelledby="generatorTitle">
+          <div class="panel-header">
+            <div>
+              <h2 id="generatorTitle">Workout Generator</h2>
+              <p>Choose your mode, gear, duration, and difficulty. Bodyweight is always included automatically.</p>
+            </div>
+          </div>
+
+          <form id="generatorForm" class="form-grid">
+            <div class="field-group">
+              <h3>Mode</h3>
+              <div class="segmented" role="tablist" aria-label="Workout mode">
+                <button class="mode-btn active" type="button" data-mode="equipment">Equipment-first</button>
+                <button class="mode-btn" type="button" data-mode="muscle">Muscle-first</button>
+                <button class="mode-btn" type="button" data-mode="hybrid">Hybrid</button>
+              </div>
+              <p class="label-note" id="modeDescription">Build around whatever gear the user has and keep the workout balanced.</p>
+            </div>
+
+            <div class="field-group">
+              <div class="row-between">
+                <h3>Equipment available</h3>
+                <p class="tiny">Bodyweight always counts.</p>
+              </div>
+              <div class="chip-grid" id="equipmentGrid"></div>
+            </div>
+
+            <div class="field-group">
+              <div class="row-between">
+                <h3>Muscle focus</h3>
+                <p class="tiny">Leave blank for full-body randomness.</p>
+              </div>
+              <div class="muscle-grid" id="muscleGrid"></div>
+            </div>
+
+            <div class="field-row">
+              <label>
+                <span class="tiny">Workout length</span>
+                <select id="duration" class="select">
+                  <option value="20">20 min</option>
+                  <option value="30" selected>30 min</option>
+                  <option value="45">45 min</option>
+                  <option value="60">60 min</option>
+                </select>
+              </label>
+
+              <label>
+                <span class="tiny">Difficulty</span>
+                <select id="difficulty" class="select">
+                  <option value="1">Beginner</option>
+                  <option value="2" selected>Intermediate</option>
+                  <option value="3">Advanced</option>
+                </select>
+              </label>
+
+              <label>
+                <span class="tiny">Session style</span>
+                <select id="style" class="select">
+                  <option value="auto" selected>Auto-random</option>
+                  <option value="straight">Straight sets</option>
+                  <option value="circuit">Circuit</option>
+                  <option value="emom">EMOM</option>
+                  <option value="amrap">AMRAP</option>
+                  <option value="ladder">Ladder</option>
+                  <option value="powerpump">Power + pump</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="field-group">
+              <h3>Intensity slider</h3>
+              <div class="range-wrap">
+                <div class="range-header">
+                  <span class="muted">Easy cruise</span>
+                  <strong id="intensityLabel">7 / 10</strong>
+                  <span class="muted">Nasty work</span>
+                </div>
+                <input id="intensity" type="range" min="1" max="10" step="1" value="7" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <h3>Optional note</h3>
+              <textarea id="goalNote" rows="3" placeholder="Examples: deployed gym, low ceiling, bad knee today, want more upper body, keep it simple..."></textarea>
+            </div>
+
+            <div class="actions-row">
+              <button class="primary-btn" type="submit">Generate workout</button>
+              <button class="ghost-btn" id="surpriseBtn" type="button">Randomize filters</button>
+              <button class="ghost-btn" id="resetBtn" type="button">Reset</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="result-card" aria-labelledby="resultTitle">
+          <div class="result-header">
+            <div>
+              <h2 id="resultTitle">Generated WOD</h2>
+              <p>Your workout lands here. Save it, copy it, or roll a new one.</p>
+            </div>
+          </div>
+
+          <div id="resultMeta" class="result-meta"></div>
+          <div id="resultBody">
+            <div class="empty-state">
+              Hit <strong>Generate workout</strong> and Cress WOD will build a session.
+            </div>
+          </div>
+          <div class="result-actions" style="margin-top:16px;">
+            <button class="primary-btn" id="saveWorkoutBtn" type="button">Save workout</button>
+            <button class="ghost-btn" id="copyWorkoutBtn" type="button">Copy text</button>
+            <button class="ghost-btn" id="regenWorkoutBtn" type="button">Regenerate</button>
+          </div>
+          <div class="warning-note" style="margin-top:16px;">
+            This is a training generator, not medical advice. Scale movements, volume, and intensity to the user’s actual ability and any injuries.
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="saved">
+      <div class="container split-grid">
+        <section class="saved-card">
+          <div class="saved-header">
+            <div>
+              <h2>Saved Workouts</h2>
+              <p>Saved locally for the current account. Guest mode can save too on the current device.</p>
+            </div>
+          </div>
+          <div class="saved-actions">
+            <button class="ghost-btn" id="clearSavedBtn" type="button">Clear saved</button>
+            <button class="ghost-btn" id="exportSavedBtn" type="button">Export JSON</button>
+          </div>
+          <div id="savedList" class="saved-list"></div>
+        </section>
+
+        <section class="saved-card">
+          <div class="saved-header">
+            <div>
+              <h2>Recent History</h2>
+              <p>Every generated workout gets logged so the user can avoid doing the exact same thing every day.</p>
+            </div>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="section" id="account">
+      <div class="container account-layout">
+        <section class="account-card">
+          <div class="account-header">
+            <div>
+              <h2>Account</h2>
+              <p>Local account tools so saved workouts and history stay organized on the same device.</p>
+            </div>
+          </div>
+
+          <div class="auth-tabs" role="tablist" aria-label="Account tabs">
+            <button class="auth-tab active" type="button" data-auth="login">Login</button>
+            <button class="auth-tab" type="button" data-auth="register">Register</button>
+          </div>
+
+          <div id="loginPanel" class="auth-panel active">
+            <form id="loginForm" class="form-grid">
+              <label>
+                <span class="tiny">Username</span>
+                <input class="text-input" id="loginUsername" type="text" autocomplete="username" placeholder="Enter username" required />
+              </label>
+              <label>
+                <span class="tiny">Password</span>
+                <input class="text-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required />
+              </label>
+              <div class="auth-actions">
+                <button class="primary-btn" type="submit">Login</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="registerPanel" class="auth-panel">
+            <form id="registerForm" class="form-grid">
+              <label>
+                <span class="tiny">Username</span>
+                <input class="text-input" id="registerUsername" type="text" autocomplete="username" placeholder="Create username" required />
+              </label>
+              <label>
+                <span class="tiny">Password</span>
+                <input class="text-input" id="registerPassword" type="password" autocomplete="new-password" placeholder="Create password" required />
+              </label>
+              <label>
+                <span class="tiny">Display name</span>
+                <input class="text-input" id="registerDisplayName" type="text" placeholder="Optional display name" />
+              </label>
+              <div class="auth-actions">
+                <button class="primary-btn" type="submit">Create account</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="auth-note">
+            Passwords are hashed before being saved, but this still runs locally in the current browser. It works well for a static site without a backend.
+          </div>
+        </section>
+
+        <section class="account-card">
+          <div class="account-header">
+            <div>
+              <h2>Account Status</h2>
+              <p>Quick profile info for the current session.</p>
+            </div>
+          </div>
+          <div id="accountStatus" class="account-status"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="section" id="support">
+      <div class="container support-grid">
+        <section class="support-card">
+          <div class="support-header">
+            <div>
+              <h2>Support Cress WOD</h2>
+              <p>Scan the QR code below to support the project on Venmo.</p>
+            </div>
+          </div>
+
+          <div class="qr-wrap">
+            <div class="qr-frame">
+              <img id="qrImage" alt="Donation QR code" />
+            </div>
+            <div>
+              <strong id="donationLabel">Donate on Venmo @cresswell2000</strong>
+              <p class="muted" id="donationLinkText"></p>
+            </div>
+            <div class="support-actions">
+              <a class="primary-btn" id="donationOpenLink" target="_blank" rel="noopener noreferrer">Open Venmo</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>Built as a single-file static website for Cress WOD.</span>
+      <span>Upload it to GitHub Pages and go.</span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script>
+    // ==============================
+    // Cress WOD - Single File App
+    // ==============================
+    // Search for DEFAULT_DONATION_LINK to hardcode your real support URL.
+    const DEFAULT_DONATION_NAME = 'Donate on Venmo @cresswell2000';
+    const DEFAULT_DONATION_LINK = 'https://venmo.com/u/cresswell2000';
+
+    const STORAGE_KEYS = {
+      users: 'cresswod_users_v1',
+      currentUser: 'cresswod_current_user_v1',
+      guestSaved: 'cresswod_guest_saved_v1',
+      guestHistory: 'cresswod_guest_history_v1',
+      donation: 'cresswod_donation_v1'
+    };
+
+    const EQUIPMENT_OPTIONS = [
+      { id: 'dumbbells', label: 'Dumbbells', note: 'Adjustable or fixed' },
+      { id: 'barbell', label: 'Barbell', note: 'Any straight bar setup' },
+      { id: 'bench', label: 'Bench', note: 'Flat or adjustable' },
+      { id: 'pullupbar', label: 'Pull-up Bar', note: 'Doorway or rack' },
+      { id: 'kettlebell', label: 'Kettlebell', note: 'One or more' },
+      { id: 'bands', label: 'Resistance Bands', note: 'Loop or handle bands' },
+      { id: 'cable', label: 'Cable Machine', note: 'Functional trainer counts' },
+      { id: 'cardio', label: 'Cardio Machine', note: 'Bike, rower, treadmill' },
+      { id: 'jumprope', label: 'Jump Rope', note: 'Cheap but evil' },
+      { id: 'medball', label: 'Medicine Ball', note: 'Slams and throws' }
+    ];
+
+    const MUSCLE_OPTIONS = [
+      { id: 'chest', label: 'Chest' },
+      { id: 'back', label: 'Back' },
+      { id: 'shoulders', label: 'Shoulders' },
+      { id: 'arms', label: 'Arms' },
+      { id: 'legs', label: 'Legs' },
+      { id: 'core', label: 'Core' },
+      { id: 'conditioning', label: 'Conditioning' },
+      { id: 'fullbody', label: 'Full Body' }
+    ];
+
+    const MODE_DESCRIPTIONS = {
+      equipment: 'Build around whatever gear the user has and keep the workout balanced.',
+      muscle: 'Prioritize the selected muscle groups and pull from any matching movements the user can perform.',
+      hybrid: 'Blend muscle focus with the available equipment so the workout feels tailored instead of random nonsense.'
+    };
+
+    const STYLES = ['straight', 'circuit', 'emom', 'amrap', 'ladder', 'powerpump'];
+
+    const DAILY_VIBES = [
+      'Heavy-ish compound work up front, then a quick sweaty finisher.',
+      'A balanced full-body circuit with just enough suffering to feel productive.',
+      'Upper-body bias today with crisp reps and clean rest periods.',
+      'Legs plus conditioning. So, respectfully, rude.',
+      'Short, sharp, and simple. Minimal gear, maximum usefulness.',
+      'Pump work with a side of cardio because apparently peace was never an option.'
+    ];
+
+    const warmups = [
+      { name: 'Jumping Jacks', muscles: ['conditioning'], requires: [], type: 'warmup', level: 1, notes: 'Stay light on your feet and get the heart rate up.' },
+      { name: 'World’s Greatest Stretch', muscles: ['legs', 'core'], requires: [], type: 'warmup', level: 1, notes: 'Slow lunge rotation and hip opener on both sides.' },
+      { name: 'Arm Circles', muscles: ['shoulders'], requires: [], type: 'warmup', level: 1, notes: 'Forward and backward for smooth shoulder prep.' },
+      { name: 'Bodyweight Good Morning', muscles: ['legs'], requires: [], type: 'warmup', level: 1, notes: 'Hands behind head, hinge back, wake up hamstrings.' },
+      { name: 'Inchworm Walkout', muscles: ['chest', 'core'], requires: [], type: 'warmup', level: 1, notes: 'Stretch the posterior chain and hit a solid plank.' },
+      { name: 'Scap Push-Up', muscles: ['shoulders', 'back'], requires: [], type: 'warmup', level: 1, notes: 'Keep elbows locked and move through the shoulder blades.' },
+      { name: 'Glute Bridge', muscles: ['legs', 'core'], requires: [], type: 'warmup', level: 1, notes: 'Pause at the top and brace hard.' },
+      { name: 'High Knees', muscles: ['conditioning'], requires: [], type: 'warmup', level: 1, notes: 'Short burst to elevate temperature and coordination.' },
+      { name: 'Band Pull-Apart', muscles: ['back', 'shoulders'], requires: ['bands'], type: 'warmup', level: 1, notes: 'Keep ribs down and squeeze between the shoulder blades.' },
+      { name: 'Light Jump Rope', muscles: ['conditioning'], requires: ['jumprope'], type: 'warmup', level: 1, notes: 'Relaxed rhythm, easy bounce.' },
+      { name: 'Easy Row', muscles: ['conditioning'], requires: ['cardio'], type: 'warmup', level: 1, notes: 'Two minutes at conversational pace.' },
+      { name: 'PVC-less Shoulder Pass-Through', muscles: ['shoulders'], requires: [], type: 'warmup', level: 1, notes: 'Use a towel or band if available.' }
+    ];
+
+    const cooldowns = [
+      { name: 'Box Breathing', notes: 'Four seconds in, hold, out, hold. Calm the system down.' },
+      { name: 'Kneeling Hip Flexor Stretch', notes: '30 to 45 seconds per side.' },
+      { name: 'Child’s Pose with Reach', notes: 'Reach long and breathe into the lats.' },
+      { name: 'Standing Hamstring Fold', notes: 'Soft knees, relax the neck.' },
+      { name: 'Doorway Pec Stretch', notes: 'Gentle chest opener after upper-body work.' },
+      { name: 'Thread the Needle', notes: 'Rotate through the upper back without cranking it.' },
+      { name: 'Figure Four Stretch', notes: 'Great after squats, hinges, and conditioning.' },
+      { name: 'Couch Stretch', notes: 'Quad and hip flexor misery, but useful.' },
+      { name: 'Dead Hang', notes: 'If you have a bar, hang and let the shoulders decompress.' },
+      { name: 'Easy Walk', notes: 'Two to five minutes to let heart rate settle.' }
+    ];
+
+    const finishers = [
+      { name: 'Burpee Burst', requires: [], muscles: ['conditioning'], type: 'conditioning', level: 2, notes: 'Simple, mean, effective.' },
+      { name: 'Jump Rope Sprint', requires: ['jumprope'], muscles: ['conditioning'], type: 'conditioning', level: 2, notes: 'Fast rounds with short rest.' },
+      { name: 'Rower Sprint', requires: ['cardio'], muscles: ['conditioning'], type: 'conditioning', level: 2, notes: 'Hard effort, easy recovery.' },
+      { name: 'Bike Sprint', requires: ['cardio'], muscles: ['conditioning'], type: 'conditioning', level: 2, notes: 'All gas, low skill.' },
+      { name: 'Med Ball Slams', requires: ['medball'], muscles: ['conditioning', 'core'], type: 'conditioning', level: 2, notes: 'Powerful slams, reset every rep.' },
+      { name: 'Mountain Climber Ladder', requires: [], muscles: ['conditioning', 'core'], type: 'conditioning', level: 1, notes: 'Fast knee drives, hips steady.' },
+      { name: 'Farmer Carry March', requires: ['dumbbells'], muscles: ['core', 'arms'], type: 'conditioning', level: 1, notes: 'Heavy carry or in-place march if space is tight.' },
+      { name: 'Kettlebell Swing Wave', requires: ['kettlebell'], muscles: ['legs', 'conditioning'], type: 'conditioning', level: 2, notes: 'Explosive hinge, crisp reps.' }
+    ];
+
+    const exercises = [
+      { name: 'Push-Up', muscles: ['chest', 'arms', 'core'], requires: [], type: 'compound', level: 1, notes: 'Hands under shoulders, body moves as one piece.' },
+      { name: 'Incline Push-Up', muscles: ['chest', 'arms'], requires: ['bench'], type: 'compound', level: 1, notes: 'Use bench or elevated surface to scale.' },
+      { name: 'Decline Push-Up', muscles: ['chest', 'shoulders', 'core'], requires: ['bench'], type: 'compound', level: 2, notes: 'Feet up, ribs down, don’t crane the neck.' },
+      { name: 'Diamond Push-Up', muscles: ['chest', 'arms'], requires: [], type: 'accessory', level: 2, notes: 'Triceps-heavy variation with a smaller hand position.' },
+      { name: 'Pike Push-Up', muscles: ['shoulders', 'arms'], requires: [], type: 'compound', level: 2, notes: 'Great vertical pressing pattern without equipment.' },
+      { name: 'Bodyweight Squat', muscles: ['legs'], requires: [], type: 'compound', level: 1, notes: 'Sit between the hips, stand hard.' },
+      { name: 'Jump Squat', muscles: ['legs', 'conditioning'], requires: [], type: 'conditioning', level: 2, notes: 'Explode up, land softly.' },
+      { name: 'Reverse Lunge', muscles: ['legs', 'core'], requires: [], type: 'compound', level: 1, notes: 'Step back long enough to keep the front foot planted.' },
+      { name: 'Walking Lunge', muscles: ['legs', 'core'], requires: [], type: 'compound', level: 2, notes: 'Stay tall and own each step.' },
+      { name: 'Bulgarian Split Squat', muscles: ['legs'], requires: ['bench'], type: 'compound', level: 2, notes: 'Rear foot elevated. Brutal in a good way.' },
+      { name: 'Glute Bridge', muscles: ['legs', 'core'], requires: [], type: 'accessory', level: 1, notes: 'Pause and squeeze glutes at the top.' },
+      { name: 'Single-Leg Glute Bridge', muscles: ['legs', 'core'], requires: [], type: 'accessory', level: 2, notes: 'Fight for pelvic control.' },
+      { name: 'Hip Thrust', muscles: ['legs'], requires: ['bench'], type: 'compound', level: 1, notes: 'Upper back on bench, chin tucked, finish with glutes.' },
+      { name: 'Wall Sit', muscles: ['legs'], requires: [], type: 'accessory', level: 1, notes: 'Static burn builder.' },
+      { name: 'Calf Raise', muscles: ['legs'], requires: [], type: 'accessory', level: 1, notes: 'Slow lower, full squeeze at the top.' },
+      { name: 'Pull-Up', muscles: ['back', 'arms'], requires: ['pullupbar'], type: 'compound', level: 3, notes: 'Dead hang to chin over bar if clean reps are there.' },
+      { name: 'Chin-Up', muscles: ['back', 'arms'], requires: ['pullupbar'], type: 'compound', level: 3, notes: 'Supinated grip, keep legs quiet.' },
+      { name: 'Hanging Knee Raise', muscles: ['core'], requires: ['pullupbar'], type: 'accessory', level: 2, notes: 'Posterior pelvic tilt at the top.' },
+      { name: 'Bear Crawl', muscles: ['core', 'shoulders'], requires: [], type: 'conditioning', level: 2, notes: 'Knees low and controlled.' },
+      { name: 'Burpee', muscles: ['conditioning', 'chest'], requires: [], type: 'conditioning', level: 2, notes: 'Keep the pace sustainable and consistent.' },
+      { name: 'Mountain Climber', muscles: ['conditioning', 'core'], requires: [], type: 'conditioning', level: 1, notes: 'Drive knees fast without bouncing the hips.' },
+      { name: 'Plank', muscles: ['core'], requires: [], type: 'accessory', level: 1, notes: 'Ribs down, glutes tight, breathe behind the brace.' },
+      { name: 'Side Plank', muscles: ['core'], requires: [], type: 'accessory', level: 1, notes: 'Straight line from ear to ankle.' },
+      { name: 'Dead Bug', muscles: ['core'], requires: [], type: 'accessory', level: 1, notes: 'Low back stays glued down.' },
+      { name: 'Hollow Hold', muscles: ['core'], requires: [], type: 'accessory', level: 2, notes: 'Lower back pressed to the floor the whole time.' },
+      { name: 'V-Up', muscles: ['core'], requires: [], type: 'accessory', level: 2, notes: 'Stay snappy, don’t yank the neck.' },
+      { name: 'Bicycle Crunch', muscles: ['core'], requires: [], type: 'accessory', level: 1, notes: 'Rotate through the ribcage, not just the elbows.' },
+      { name: 'Superman Hold', muscles: ['back', 'core'], requires: [], type: 'accessory', level: 1, notes: 'Lift lightly and hold tension, don’t overextend.' },
+      { name: 'Skater Hop', muscles: ['legs', 'conditioning'], requires: [], type: 'conditioning', level: 2, notes: 'Stick the landing before the next bound.' },
+      { name: 'Hand-Release Push-Up', muscles: ['chest', 'arms'], requires: [], type: 'compound', level: 2, notes: 'Full reset every rep.' },
+      { name: 'Dumbbell Bench Press', muscles: ['chest', 'arms'], requires: ['dumbbells', 'bench'], type: 'compound', level: 1, notes: 'Press evenly and keep shoulders set.' },
+      { name: 'Dumbbell Floor Press', muscles: ['chest', 'arms'], requires: ['dumbbells'], type: 'compound', level: 1, notes: 'Great if you have no bench.' },
+      { name: 'Incline Dumbbell Press', muscles: ['chest', 'shoulders'], requires: ['dumbbells', 'bench'], type: 'compound', level: 2, notes: 'If your bench adjusts, slightly incline it.' },
+      { name: 'Dumbbell Fly', muscles: ['chest'], requires: ['dumbbells', 'bench'], type: 'accessory', level: 2, notes: 'Small bend in the elbow, stretch with control.' },
+      { name: 'One-Arm Dumbbell Row', muscles: ['back', 'arms'], requires: ['dumbbells', 'bench'], type: 'compound', level: 1, notes: 'Drive elbow toward hip and avoid torso rotation.' },
+      { name: 'Chest-Supported Dumbbell Row', muscles: ['back'], requires: ['dumbbells', 'bench'], type: 'compound', level: 2, notes: 'Nice for lower-back-friendly pulling volume.' },
+      { name: 'Dumbbell Romanian Deadlift', muscles: ['legs'], requires: ['dumbbells'], type: 'compound', level: 1, notes: 'Soft knees, long hinge, tight lats.' },
+      { name: 'Goblet Squat', muscles: ['legs', 'core'], requires: ['dumbbells'], type: 'compound', level: 1, notes: 'Great all-purpose squat pattern.' },
+      { name: 'Dumbbell Split Squat', muscles: ['legs'], requires: ['dumbbells'], type: 'compound', level: 2, notes: 'Two DBs or one goblet hold works.' },
+      { name: 'Dumbbell Step-Up', muscles: ['legs'], requires: ['dumbbells', 'bench'], type: 'compound', level: 2, notes: 'Drive through the whole foot on the box or bench.' },
+      { name: 'Dumbbell Shoulder Press', muscles: ['shoulders', 'arms'], requires: ['dumbbells'], type: 'compound', level: 1, notes: 'Standing or seated.' },
+      { name: 'Arnold Press', muscles: ['shoulders', 'arms'], requires: ['dumbbells'], type: 'compound', level: 2, notes: 'Rotate smoothly and don’t rush it.' },
+      { name: 'Dumbbell Lateral Raise', muscles: ['shoulders'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Light weight, strict control.' },
+      { name: 'Rear Delt Fly', muscles: ['shoulders', 'back'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Hinge over and move from the upper back.' },
+      { name: 'Front Raise', muscles: ['shoulders'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Don’t swing. Smooth lift, smooth lower.' },
+      { name: 'Hammer Curl', muscles: ['arms'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Neutral grip, elbows quiet.' },
+      { name: 'Alternating Dumbbell Curl', muscles: ['arms'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Full elbow extension each rep.' },
+      { name: 'Overhead Dumbbell Triceps Extension', muscles: ['arms'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Brace hard and keep elbows tucked.' },
+      { name: 'Dumbbell Skull Crusher', muscles: ['arms'], requires: ['dumbbells', 'bench'], type: 'accessory', level: 2, notes: 'Lower with control and keep upper arm steady.' },
+      { name: 'Farmer Carry', muscles: ['core', 'arms'], requires: ['dumbbells'], type: 'conditioning', level: 1, notes: 'Walk tall and let grip do the work.' },
+      { name: 'Dumbbell Russian Twist', muscles: ['core'], requires: ['dumbbells'], type: 'accessory', level: 1, notes: 'Rotate the torso, not just the hands.' },
+      { name: 'Barbell Back Squat', muscles: ['legs', 'core'], requires: ['barbell'], type: 'compound', level: 2, notes: 'Own your brace before every rep.' },
+      { name: 'Barbell Front Squat', muscles: ['legs', 'core'], requires: ['barbell'], type: 'compound', level: 3, notes: 'Elbows up, stay tall out of the hole.' },
+      { name: 'Barbell Deadlift', muscles: ['legs', 'back'], requires: ['barbell'], type: 'compound', level: 2, notes: 'Push the floor away and keep the bar close.' },
+      { name: 'Barbell Romanian Deadlift', muscles: ['legs'], requires: ['barbell'], type: 'compound', level: 2, notes: 'Lats locked, hinge until hamstrings say hello.' },
+      { name: 'Barbell Bench Press', muscles: ['chest', 'arms'], requires: ['barbell', 'bench'], type: 'compound', level: 2, notes: 'Pull shoulders down and back before you unrack.' },
+      { name: 'Barbell Overhead Press', muscles: ['shoulders', 'arms'], requires: ['barbell'], type: 'compound', level: 2, notes: 'Squeeze glutes and move the head around the bar.' },
+      { name: 'Barbell Bent-Over Row', muscles: ['back', 'arms'], requires: ['barbell'], type: 'compound', level: 2, notes: 'Stable hinge and strong pull into the lower ribs.' },
+      { name: 'Barbell Hip Thrust', muscles: ['legs'], requires: ['barbell', 'bench'], type: 'compound', level: 2, notes: 'Pause hard at lockout.' },
+      { name: 'Good Morning', muscles: ['legs', 'back'], requires: ['barbell'], type: 'compound', level: 3, notes: 'Only use if technique is solid and loading is sane.' },
+      { name: 'Barbell Curl', muscles: ['arms'], requires: ['barbell'], type: 'accessory', level: 1, notes: 'No body English.' },
+      { name: 'Barbell Lunge', muscles: ['legs'], requires: ['barbell'], type: 'compound', level: 3, notes: 'Controlled step and stable torso.' },
+      { name: 'Kettlebell Swing', muscles: ['legs', 'conditioning'], requires: ['kettlebell'], type: 'conditioning', level: 2, notes: 'Explosive hip snap, no squatty swing.' },
+      { name: 'Kettlebell Goblet Squat', muscles: ['legs', 'core'], requires: ['kettlebell'], type: 'compound', level: 1, notes: 'Elbows between knees, chest up.' },
+      { name: 'Kettlebell Clean', muscles: ['shoulders', 'legs'], requires: ['kettlebell'], type: 'compound', level: 3, notes: 'Let the bell roll around the hand, don’t crash it.' },
+      { name: 'Kettlebell Press', muscles: ['shoulders', 'arms'], requires: ['kettlebell'], type: 'compound', level: 2, notes: 'Tight rack, smooth lockout.' },
+      { name: 'Kettlebell Snatch', muscles: ['shoulders', 'conditioning'], requires: ['kettlebell'], type: 'conditioning', level: 3, notes: 'High skill. Keep it crisp.' },
+      { name: 'Kettlebell Row', muscles: ['back', 'arms'], requires: ['kettlebell'], type: 'compound', level: 1, notes: 'Same setup as one-arm DB row.' },
+      { name: 'Kettlebell Romanian Deadlift', muscles: ['legs'], requires: ['kettlebell'], type: 'compound', level: 1, notes: 'Great hinge pattern for lighter setups.' },
+      { name: 'Resistance Band Row', muscles: ['back', 'arms'], requires: ['bands'], type: 'compound', level: 1, notes: 'Pause at peak contraction.' },
+      { name: 'Band Chest Press', muscles: ['chest', 'arms'], requires: ['bands'], type: 'compound', level: 1, notes: 'Stagger stance for balance.' },
+      { name: 'Band Pull-Apart', muscles: ['back', 'shoulders'], requires: ['bands'], type: 'accessory', level: 1, notes: 'High rep upper-back staple.' },
+      { name: 'Band Face Pull', muscles: ['back', 'shoulders'], requires: ['bands'], type: 'accessory', level: 1, notes: 'Pull toward forehead with elbows high.' },
+      { name: 'Band Curl', muscles: ['arms'], requires: ['bands'], type: 'accessory', level: 1, notes: 'Good squeeze, full extension.' },
+      { name: 'Band Overhead Triceps Extension', muscles: ['arms'], requires: ['bands'], type: 'accessory', level: 1, notes: 'Lock elbows in place.' },
+      { name: 'Pallof Press', muscles: ['core'], requires: ['bands'], type: 'accessory', level: 1, notes: 'Anti-rotation core work. Stay square.' },
+      { name: 'Banded Squat', muscles: ['legs'], requires: ['bands'], type: 'compound', level: 1, notes: 'Use band resistance or just tension out of the hole.' },
+      { name: 'Banded Glute Bridge', muscles: ['legs'], requires: ['bands'], type: 'accessory', level: 1, notes: 'Push knees out while you bridge.' },
+      { name: 'Lat Pulldown', muscles: ['back', 'arms'], requires: ['cable'], type: 'compound', level: 1, notes: 'Pull elbows toward the ribs, not behind you.' },
+      { name: 'Cable Row', muscles: ['back', 'arms'], requires: ['cable'], type: 'compound', level: 1, notes: 'Tall torso, smooth squeeze.' },
+      { name: 'Cable Chest Fly', muscles: ['chest'], requires: ['cable'], type: 'accessory', level: 1, notes: 'Slight bend in elbows, controlled stretch.' },
+      { name: 'Cable Chest Press', muscles: ['chest', 'arms'], requires: ['cable'], type: 'compound', level: 1, notes: 'Stable split stance helps.' },
+      { name: 'Triceps Pushdown', muscles: ['arms'], requires: ['cable'], type: 'accessory', level: 1, notes: 'Elbows pinned, full lockout.' },
+      { name: 'Cable Curl', muscles: ['arms'], requires: ['cable'], type: 'accessory', level: 1, notes: 'Constant tension, don’t drift backward.' },
+      { name: 'Cable Lateral Raise', muscles: ['shoulders'], requires: ['cable'], type: 'accessory', level: 2, notes: 'One side at a time works great.' },
+      { name: 'Cable Face Pull', muscles: ['back', 'shoulders'], requires: ['cable'], type: 'accessory', level: 1, notes: 'Upper-back and rear-delt gold.' },
+      { name: 'Cable Wood Chop', muscles: ['core'], requires: ['cable'], type: 'accessory', level: 2, notes: 'Rotate through the trunk under control.' },
+      { name: 'Cable Crunch', muscles: ['core'], requires: ['cable'], type: 'accessory', level: 1, notes: 'Curl ribs toward pelvis instead of yanking with arms.' },
+      { name: 'Treadmill Sprint', muscles: ['conditioning'], requires: ['cardio'], type: 'conditioning', level: 2, notes: 'Fast but safe. Know your machine first.' },
+      { name: 'Rower Interval', muscles: ['conditioning', 'legs'], requires: ['cardio'], type: 'conditioning', level: 1, notes: 'Leg drive first, then body swing, then arms.' },
+      { name: 'Assault/Bike Sprint', muscles: ['conditioning'], requires: ['cardio'], type: 'conditioning', level: 1, notes: 'No technique bottleneck. Just work.' },
+      { name: 'Jump Rope', muscles: ['conditioning'], requires: ['jumprope'], type: 'conditioning', level: 1, notes: 'Short, quick contacts.' },
+      { name: 'Double-Under Practice', muscles: ['conditioning'], requires: ['jumprope'], type: 'conditioning', level: 3, notes: 'If you miss a lot, keep reps small and clean.' },
+      { name: 'Medicine Ball Slam', muscles: ['conditioning', 'core'], requires: ['medball'], type: 'conditioning', level: 1, notes: 'Tall reach, violent slam, athletic pickup.' },
+      { name: 'Medicine Ball Squat to Press', muscles: ['legs', 'shoulders'], requires: ['medball'], type: 'compound', level: 1, notes: 'Simple conditioning-friendly combo.' },
+      { name: 'Medicine Ball Russian Twist', muscles: ['core'], requires: ['medball'], type: 'accessory', level: 1, notes: 'Rotate and keep feet grounded or elevated.' }
+    ];
+
+    const state = {
+      mode: 'equipment',
+      lastGenerated: null,
+      authView: 'login'
+    };
+
+    const els = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+      cacheElements();
+      renderEquipmentOptions();
+      renderMuscleOptions();
+      bindUI();
+      hydrateDonationSettings();
+      updateDailyVibe();
+      updateDatabaseCount();
+      updateAccountStatus();
+      renderSavedWorkouts();
+      renderHistory();
+    });
+
+    function cacheElements() {
+      els.equipmentGrid = document.getElementById('equipmentGrid');
+      els.muscleGrid = document.getElementById('muscleGrid');
+      els.generatorForm = document.getElementById('generatorForm');
+      els.modeDescription = document.getElementById('modeDescription');
+      els.resultMeta = document.getElementById('resultMeta');
+      els.resultBody = document.getElementById('resultBody');
+      els.toast = document.getElementById('toast');
+      els.intensity = document.getElementById('intensity');
+      els.intensityLabel = document.getElementById('intensityLabel');
+      els.savedList = document.getElementById('savedList');
+      els.historyList = document.getElementById('historyList');
+      els.accountStatus = document.getElementById('accountStatus');
+      els.qrImage = document.getElementById('qrImage');
+      els.donationLabel = document.getElementById('donationLabel');
+      els.donationLinkText = document.getElementById('donationLinkText');
+      els.donationOpenLink = document.getElementById('donationOpenLink');
+      els.donationForm = document.getElementById('donationForm');
+      els.donationName = document.getElementById('donationName');
+      els.donationLink = document.getElementById('donationLink');
+      els.dailyVibe = document.getElementById('dailyVibe');
+      els.dbCount = document.getElementById('dbCount');
+      els.duration = document.getElementById('duration');
+      els.difficulty = document.getElementById('difficulty');
+      els.style = document.getElementById('style');
+      els.goalNote = document.getElementById('goalNote');
+      els.loginForm = document.getElementById('loginForm');
+      els.registerForm = document.getElementById('registerForm');
+      els.loginPanel = document.getElementById('loginPanel');
+      els.registerPanel = document.getElementById('registerPanel');
+    }
+
+    function bindUI() {
+      document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setMode(btn.dataset.mode));
+      });
+
+      document.querySelectorAll('.auth-tab').forEach((btn) => {
+        btn.addEventListener('click', () => setAuthView(btn.dataset.auth));
+      });
+
+      els.generatorForm.addEventListener('submit', handleGenerate);
+      document.getElementById('surpriseBtn').addEventListener('click', surpriseMe);
+      document.getElementById('surpriseHeroBtn').addEventListener('click', surpriseMe);
+      document.getElementById('resetBtn').addEventListener('click', resetForm);
+      document.getElementById('saveWorkoutBtn').addEventListener('click', saveCurrentWorkout);
+      document.getElementById('copyWorkoutBtn').addEventListener('click', copyCurrentWorkout);
+      document.getElementById('regenWorkoutBtn').addEventListener('click', regenerateWorkout);
+      document.getElementById('clearSavedBtn').addEventListener('click', clearSaved);
+      document.getElementById('exportSavedBtn').addEventListener('click', exportSaved);
+      const resetDonationBtn = document.getElementById('resetDonationBtn');
+      if (resetDonationBtn) resetDonationBtn.addEventListener('click', resetDonationSettings);
+      els.intensity.addEventListener('input', () => {
+        els.intensityLabel.textContent = `${els.intensity.value} / 10`;
+      });
+      if (els.donationForm) els.donationForm.addEventListener('submit', handleDonationUpdate);
+      els.loginForm.addEventListener('submit', handleLogin);
+      els.registerForm.addEventListener('submit', handleRegister);
+    }
+
+    function renderEquipmentOptions() {
+      els.equipmentGrid.innerHTML = EQUIPMENT_OPTIONS.map((item) => `
+        <label class="chip" data-chip="equipment-${item.id}">
+          <input type="checkbox" value="${item.id}" class="equipment-input" />
+          <span>
+            ${item.label}
+            <small>${item.note}</small>
+          </span>
+        </label>
+      `).join('');
+
+      els.equipmentGrid.querySelectorAll('.equipment-input').forEach((input) => {
+        input.addEventListener('change', () => {
+          input.closest('.chip').classList.toggle('active', input.checked);
+        });
+      });
+    }
+
+    function renderMuscleOptions() {
+      els.muscleGrid.innerHTML = MUSCLE_OPTIONS.map((item) => `
+        <label class="chip" data-chip="muscle-${item.id}">
+          <input type="checkbox" value="${item.id}" class="muscle-input" />
+          <span>${item.label}</span>
+        </label>
+      `).join('');
+
+      els.muscleGrid.querySelectorAll('.muscle-input').forEach((input) => {
+        input.addEventListener('change', () => {
+          input.closest('.chip').classList.toggle('active', input.checked);
+          if (input.value === 'fullbody' && input.checked) {
+            els.muscleGrid.querySelectorAll('.muscle-input').forEach((other) => {
+              if (other !== input) {
+                other.checked = false;
+                other.closest('.chip').classList.remove('active');
+              }
+            });
+          }
+          if (input.value !== 'fullbody' && input.checked) {
+            const fullbody = els.muscleGrid.querySelector('.muscle-input[value="fullbody"]');
+            if (fullbody) {
+              fullbody.checked = false;
+              fullbody.closest('.chip').classList.remove('active');
+            }
+          }
+        });
+      });
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      els.modeDescription.textContent = MODE_DESCRIPTIONS[mode];
+    }
+
+    function setAuthView(view) {
+      state.authView = view;
+      document.querySelectorAll('.auth-tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.auth === view);
+      });
+      els.loginPanel.classList.toggle('active', view === 'login');
+      els.registerPanel.classList.toggle('active', view === 'register');
+    }
+
+    function getSelectedEquipment() {
+      return [...document.querySelectorAll('.equipment-input:checked')].map((input) => input.value);
+    }
+
+    function getSelectedMuscles() {
+      return [...document.querySelectorAll('.muscle-input:checked')].map((input) => input.value);
+    }
+
+    function surpriseMe() {
+      resetForm(false);
+      setMode(randomChoice(['equipment', 'muscle', 'hybrid']));
+      EQUIPMENT_OPTIONS.forEach((item) => {
+        if (Math.random() > 0.62) {
+          const input = document.querySelector(`.equipment-input[value="${item.id}"]`);
+          input.checked = true;
+          input.closest('.chip').classList.add('active');
+        }
+      });
+      MUSCLE_OPTIONS.forEach((item) => {
+        if (item.id !== 'fullbody' && Math.random() > 0.78) {
+          const input = document.querySelector(`.muscle-input[value="${item.id}"]`);
+          input.checked = true;
+          input.closest('.chip').classList.add('active');
+        }
+      });
+      if (Math.random() > 0.7 || getSelectedMuscles().length === 0) {
+        const full = document.querySelector('.muscle-input[value="fullbody"]');
+        if (full && getSelectedMuscles().length === 0) {
+          full.checked = true;
+          full.closest('.chip').classList.add('active');
+        }
+      }
+      els.duration.value = randomChoice(['20', '30', '45', '60']);
+      els.difficulty.value = randomChoice(['1', '2', '3']);
+      els.style.value = randomChoice(['auto', ...STYLES]);
+      els.intensity.value = String(rand(5, 10));
+      els.intensityLabel.textContent = `${els.intensity.value} / 10`;
+      els.goalNote.value = randomChoice([
+        '',
+        'Keep it simple and efficient.',
+        'No wild Olympic-lift-adjacent nonsense.',
+        'Need something that works in a small space.',
+        'I want a good upper-body pump.',
+        'Make the conditioning short but spicy.'
+      ]);
+      handleGenerate();
+      window.location.hash = '#generator';
+    }
+
+    function resetForm(showMsg = true) {
+      setMode('equipment');
+      document.querySelectorAll('.equipment-input, .muscle-input').forEach((input) => {
+        input.checked = false;
+        input.closest('.chip').classList.remove('active');
+      });
+      els.duration.value = '30';
+      els.difficulty.value = '2';
+      els.style.value = 'auto';
+      els.intensity.value = '7';
+      els.intensityLabel.textContent = '7 / 10';
+      els.goalNote.value = '';
+      if (showMsg) showToast('Filters reset. Fresh slate.');
+    }
+
+    function handleGenerate(event) {
+      if (event) event.preventDefault();
+      const config = collectConfig();
+      const workout = generateWorkout(config);
+      state.lastGenerated = workout;
+      renderWorkout(workout);
+      saveToHistory(workout);
+      renderHistory();
+      showToast('Workout generated.');
+    }
+
+    function regenerateWorkout() {
+      if (!state.lastGenerated) {
+        handleGenerate();
+        return;
+      }
+      const config = state.lastGenerated.config;
+      const workout = generateWorkout(config);
+      state.lastGenerated = workout;
+      renderWorkout(workout);
+      saveToHistory(workout);
+      renderHistory();
+      showToast('Rerolled a fresh WOD.');
+    }
+
+    function collectConfig() {
+      const equipment = getSelectedEquipment();
+      let muscles = getSelectedMuscles();
+      if (muscles.length === 0) muscles = ['fullbody'];
+      return {
+        mode: state.mode,
+        equipment,
+        muscles,
+        duration: Number(els.duration.value),
+        difficulty: Number(els.difficulty.value),
+        style: els.style.value,
+        intensity: Number(els.intensity.value),
+        goalNote: els.goalNote.value.trim()
+      };
+    }
+
+    function generateWorkout(config) {
+      const available = new Set(['bodyweight', ...config.equipment]);
+      const style = config.style === 'auto' ? chooseAutoStyle(config) : config.style;
+      const targetMuscles = config.muscles.includes('fullbody') ? ['chest','back','shoulders','arms','legs','core','conditioning'] : config.muscles;
+
+      let pool = exercises.filter((exercise) => isExerciseAvailable(exercise, available) && isDifficultyOkay(exercise, config.difficulty));
+
+      if (config.mode === 'muscle') {
+        pool = prioritizeByMuscle(pool, targetMuscles, 0.84);
+      } else if (config.mode === 'hybrid') {
+        pool = prioritizeByMuscle(pool, targetMuscles, 0.7);
+      } else {
+        pool = prioritizeByMuscle(pool, targetMuscles, targetMuscles.includes('conditioning') ? 0.55 : 0.48);
+      }
+
+      const durationPlan = getDurationPlan(config.duration, config.intensity);
+      const warmupMoves = pickUnique(
+        warmups.filter((item) => isExerciseAvailable(item, available)),
+        durationPlan.warmup,
+        targetMuscles
+      );
+
+      const compounds = dedupeByName(pool.filter((ex) => ex.type === 'compound'));
+      const accessories = dedupeByName(pool.filter((ex) => ex.type === 'accessory'));
+      const conditioning = dedupeByName(pool.filter((ex) => ex.type === 'conditioning'));
+
+      const strengthBlock = pickUnique(compounds, durationPlan.main, targetMuscles);
+      const accessoryBlock = pickUnique([...accessories, ...compounds], durationPlan.accessory, targetMuscles, strengthBlock.map((item) => item.name));
+      const finisherPool = [...finishers.filter((item) => isExerciseAvailable(item, available)), ...conditioning];
+      const finisherBlock = pickUnique(finisherPool, durationPlan.finisher, targetMuscles, strengthBlock.concat(accessoryBlock).map((item) => item.name));
+      const cooldownBlock = pickUnique(cooldowns, durationPlan.cooldown, targetMuscles);
+
+      const title = buildWorkoutTitle(config, style);
+      const summary = buildWorkoutSummary(config, style, targetMuscles);
+
+      const sections = [
+        {
+          title: 'Warm-Up',
+          note: `${Math.max(4, Math.floor(config.duration * 0.18))} minutes of prep. Move with intent, not panic.`,
+          items: warmupMoves.map((item) => ({ ...item, prescription: warmupPrescription(item, config) }))
+        },
+        {
+          title: styleSectionTitle(style, 'main'),
+          note: sectionDescription(style, 'main', config),
+          items: strengthBlock.map((item, index) => ({ ...item, prescription: mainPrescription(item, config, style, index) }))
+        }
+      ];
+
+      if (accessoryBlock.length) {
+        sections.push({
+          title: styleSectionTitle(style, 'accessory'),
+          note: sectionDescription(style, 'accessory', config),
+          items: accessoryBlock.map((item, index) => ({ ...item, prescription: accessoryPrescription(item, config, style, index) }))
+        });
+      }
+
+      if (finisherBlock.length) {
+        sections.push({
+          title: 'Finisher',
+          note: 'Short, sharp, and a little disrespectful.',
+          items: finisherBlock.map((item) => ({ ...item, prescription: finisherPrescription(item, config) }))
+        });
+      }
+
+      sections.push({
+        title: 'Cooldown',
+        note: 'Breathe, downshift, and pretend you always planned to stretch.',
+        items: cooldownBlock.map((item) => ({ ...item, prescription: cooldownPrescription(item, config) }))
+      });
+
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        createdAt: new Date().toISOString(),
+        title,
+        summary,
+        style,
+        config,
+        sections,
+        textVersion: ''
+      };
+    }
+
+    function chooseAutoStyle(config) {
+      if (config.duration <= 20) return randomChoice(['circuit', 'emom', 'amrap']);
+      if (config.mode === 'muscle' && config.difficulty >= 2) return randomChoice(['straight', 'powerpump', 'circuit']);
+      if (config.intensity >= 9) return randomChoice(['emom', 'amrap', 'circuit']);
+      return randomChoice(STYLES);
+    }
+
+    function buildWorkoutTitle(config, style) {
+      const diffLabel = ['Beginner','Intermediate','Advanced'][config.difficulty - 1] || 'Intermediate';
+      const modeLabel = config.mode.charAt(0).toUpperCase() + config.mode.slice(1);
+      return `Cress WOD • ${diffLabel} ${modeLabel} ${style.toUpperCase()}`;
+    }
+
+    function buildWorkoutSummary(config, style, targetMuscles) {
+      const gearLabel = config.equipment.length ? config.equipment.join(', ') : 'bodyweight only';
+      const muscleLabel = targetMuscles.join(', ');
+      const notes = config.goalNote ? ` Note: ${config.goalNote}` : '';
+      return `${config.duration} min ${style.toUpperCase()} session with ${gearLabel}. Focus: ${muscleLabel}.${notes}`;
+    }
+
+    function getDurationPlan(duration, intensity) {
+      const spicy = intensity >= 8;
+      if (duration <= 20) {
+        return { warmup: 3, main: spicy ? 4 : 3, accessory: 1, finisher: 1, cooldown: 2 };
+      }
+      if (duration <= 30) {
+        return { warmup: 4, main: 4, accessory: 2, finisher: 1, cooldown: 2 };
+      }
+      if (duration <= 45) {
+        return { warmup: 4, main: 5, accessory: 3, finisher: 1, cooldown: 3 };
+      }
+      return { warmup: 5, main: 5, accessory: 4, finisher: 2, cooldown: 3 };
+    }
+
+    function isExerciseAvailable(exercise, available) {
+      return (exercise.requires || []).every((req) => available.has(req));
+    }
+
+    function isDifficultyOkay(exercise, difficulty) {
+      return (exercise.level || 1) <= difficulty;
+    }
+
+    function prioritizeByMuscle(pool, targets, weight) {
+      const prioritized = [];
+      pool.forEach((item) => {
+        const hit = intersects(item.muscles || [], targets);
+        const copies = hit ? Math.max(1, Math.round(weight * 10)) : Math.max(1, Math.round((1 - weight) * 6));
+        for (let i = 0; i < copies; i += 1) prioritized.push(item);
+      });
+      return shuffle(prioritized);
+    }
+
+    function pickUnique(pool, count, targets = [], excludeNames = []) {
+      const picked = [];
+      const used = new Set(excludeNames);
+      const sorted = shuffle(pool.slice()).sort((a, b) => {
+        const aHit = intersects(a.muscles || [], targets) ? 1 : 0;
+        const bHit = intersects(b.muscles || [], targets) ? 1 : 0;
+        return bHit - aHit;
+      });
+
+      for (const item of sorted) {
+        if (picked.length >= count) break;
+        if (used.has(item.name)) continue;
+        picked.push(item);
+        used.add(item.name);
+      }
+
+      if (picked.length < count) {
+        for (const item of shuffle(pool.slice())) {
+          if (picked.length >= count) break;
+          if (used.has(item.name)) continue;
+          picked.push(item);
+          used.add(item.name);
+        }
+      }
+
+      return picked;
+    }
+
+    function warmupPrescription(item, config) {
+      const duration = config.duration <= 20 ? '30 sec' : config.duration <= 45 ? '40 sec' : '45 sec';
+      if (item.name.includes('Easy Row')) return '2 min easy pace';
+      if (item.name.includes('Light Jump Rope')) return '90 sec relaxed';
+      return `${duration} x 2 rounds`;
+    }
+
+    function mainPrescription(item, config, style, index) {
+      const level = config.difficulty;
+      const intensity = config.intensity;
+      if (style === 'emom') {
+        const reps = item.type === 'conditioning' ? 10 + level * 2 : 6 + level * 2;
+        return `EMOM ${Math.max(8, 10 + index * 2)} min • ${reps} reps`;
+      }
+      if (style === 'amrap') {
+        const reps = item.type === 'conditioning' ? 12 + level * 3 : 8 + level * 2;
+        return `AMRAP block • ${reps} reps per round`;
+      }
+      if (style === 'ladder') {
+        const top = level === 1 ? 6 : level === 2 ? 8 : 10;
+        return `Ladder 2-${top} reps • climb and descend if time allows`;
+      }
+      if (style === 'powerpump') {
+        if (item.type === 'compound') return `${4 + (level > 1 ? 1 : 0)} sets • ${5 + Math.max(0, 3 - level)}-${7 + level} reps`;
+        return `3 sets • 10-15 reps`;
+      }
+      if (style === 'circuit') {
+        return `${3 + (config.duration >= 45 ? 1 : 0)} rounds • ${item.type === 'conditioning' ? '30-40 sec' : '8-12 reps'}`;
+      }
+      const rest = intensity >= 8 ? '60-75 sec rest' : '75-90 sec rest';
+      return `${3 + (config.duration >= 45 ? 1 : 0)}-${4 + (level > 1 ? 1 : 0)} sets • ${item.type === 'conditioning' ? '20-30 sec' : level === 1 ? '8-10 reps' : level === 2 ? '6-10 reps' : '5-8 reps'} • ${rest}`;
+    }
+
+    function accessoryPrescription(item, config, style, index) {
+      if (style === 'emom') {
+        return `Alternate minute ${index + 1} • ${item.type === 'conditioning' ? '30 sec work' : '10-15 reps'}`;
+      }
+      if (style === 'amrap') {
+        return `${item.type === 'conditioning' ? '20-30 sec' : '10-16 reps'} each round`;
+      }
+      if (style === 'ladder') {
+        return `6-10-14 reps ladder`;
+      }
+      if (style === 'circuit') {
+        return `2-4 rounds • ${item.type === 'conditioning' ? '30 sec' : '12-15 reps'}`;
+      }
+      return `${config.difficulty === 1 ? '2-3' : '3-4'} sets • ${item.type === 'conditioning' ? '20-30 sec' : '10-15 reps'} • 45-60 sec rest`;
+    }
+
+    function finisherPrescription(item, config) {
+      if (item.name.includes('Sprint')) return `${config.duration <= 30 ? '6' : '8'} rounds • 20 sec hard / 40 sec easy`;
+      if (item.name.includes('Jump Rope')) return `${config.duration <= 30 ? '5' : '7'} rounds • 40 sec on / 20 sec off`;
+      if (item.name.includes('Burpee')) return `${config.intensity >= 8 ? '50' : '30'} total reps • break as needed`;
+      if (item.name.includes('Carry')) return `${config.duration <= 30 ? '4' : '6'} trips or 30 sec marches`;
+      if (item.name.includes('Wave')) return `10-15-20-15-10 swings with short rest`;
+      return `${config.duration <= 30 ? '4' : '6'} rounds • 30 sec work / 20 sec rest`;
+    }
+
+    function cooldownPrescription(item) {
+      if (item.name === 'Easy Walk') return '2-5 min easy';
+      if (item.name === 'Dead Hang') return '2 x 20-30 sec';
+      return '30-45 sec per side or position';
+    }
+
+    function styleSectionTitle(style, area) {
+      const titles = {
+        main: {
+          straight: 'Main Strength Work',
+          circuit: 'Main Circuit',
+          emom: 'EMOM Main Block',
+          amrap: 'AMRAP Main Block',
+          ladder: 'Ladder Main Block',
+          powerpump: 'Power Block'
+        },
+        accessory: {
+          straight: 'Accessory Work',
+          circuit: 'Circuit Add-On',
+          emom: 'EMOM Support Work',
+          amrap: 'AMRAP Support Work',
+          ladder: 'Ladder Support Work',
+          powerpump: 'Pump Block'
+        }
+      };
+      return titles[area][style] || 'Work Block';
+    }
+
+    function sectionDescription(style, area, config) {
+      if (style === 'circuit') return area === 'main' ? `Cycle through the list for ${config.duration <= 30 ? '3' : '4'} rounds.` : 'Move station to station with clean transitions.';
+      if (style === 'emom') return 'Start each movement at the top of the minute and use the remaining time as rest.';
+      if (style === 'amrap') return 'Accumulate as many quality rounds as possible before the clock wins.';
+      if (style === 'ladder') return 'Climb reps gradually. Keep form clean as fatigue creeps in.';
+      if (style === 'powerpump') return area === 'main' ? 'Lead with heavier compound work.' : 'Chase clean volume and a solid pump after the heavy sets.';
+      return area === 'main' ? 'Focus on quality sets, good positions, and repeatable effort.' : 'Build extra volume without turning the rest of the workout into sludge.';
+    }
+
+    function renderWorkout(workout) {
+      const equipmentLabel = workout.config.equipment.length ? workout.config.equipment.join(', ') : 'bodyweight only';
+      const focusLabel = workout.config.muscles.join(', ');
+      els.resultMeta.innerHTML = `
+        <span class="meta-badge">${workout.config.duration} min</span>
+        <span class="meta-badge">${['Beginner','Intermediate','Advanced'][workout.config.difficulty - 1]}</span>
+        <span class="meta-badge">${workout.style.toUpperCase()}</span>
+        <span class="meta-badge">${equipmentLabel}</span>
+        <span class="meta-badge">Focus: ${focusLabel}</span>
+      `;
+
+      const html = [`
+        <article class="wod-card">
+          <h4>${escapeHtml(workout.title)}</h4>
+          <p class="muted">${escapeHtml(workout.summary)}</p>
+        </article>
+      `];
+
+      workout.sections.forEach((section) => {
+        html.push(`
+          <article class="wod-card">
+            <h4>${escapeHtml(section.title)}</h4>
+            <p class="muted">${escapeHtml(section.note)}</p>
+            <div class="exercise-list">
+              ${section.items.map((item) => `
+                <div class="exercise-item">
+                  <div class="exercise-top">
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <span class="exercise-pill">${escapeHtml(item.prescription)}</span>
+                  </div>
+                  <div class="exercise-notes">
+                    ${escapeHtml(item.notes || 'No extra notes.')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </article>
+        `);
+      });
+
+      els.resultBody.innerHTML = html.join('');
+      workout.textVersion = buildTextVersion(workout);
+    }
+
+    function buildTextVersion(workout) {
+      const lines = [];
+      lines.push(workout.title);
+      lines.push(workout.summary);
+      lines.push('');
+      workout.sections.forEach((section) => {
+        lines.push(section.title.toUpperCase());
+        lines.push(section.note);
+        section.items.forEach((item) => {
+          lines.push(`- ${item.name}: ${item.prescription} — ${item.notes || ''}`);
+        });
+        lines.push('');
+      });
+      return lines.join('\n').trim();
+    }
+
+    function saveCurrentWorkout() {
+      if (!state.lastGenerated) {
+        showToast('Generate a workout first.');
+        return;
+      }
+      const target = getStorageTarget();
+      const bucket = loadJson(target.key, []);
+      bucket.unshift({
+        id: state.lastGenerated.id,
+        title: state.lastGenerated.title,
+        summary: state.lastGenerated.summary,
+        createdAt: state.lastGenerated.createdAt,
+        textVersion: state.lastGenerated.textVersion,
+        style: state.lastGenerated.style,
+        duration: state.lastGenerated.config.duration
+      });
+      saveJson(target.key, uniqueBy(bucket, 'id').slice(0, 40));
+      if (target.user) persistUserField(target.user.username, 'saved', uniqueBy(bucket, 'id').slice(0, 40));
+      renderSavedWorkouts();
+      showToast(target.user ? 'Workout saved to your account.' : 'Workout saved for guest mode on this browser.');
+    }
+
+    async function copyCurrentWorkout() {
+      if (!state.lastGenerated) {
+        showToast('Nothing to copy yet.');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(state.lastGenerated.textVersion || buildTextVersion(state.lastGenerated));
+        showToast('Workout copied to clipboard.');
+      } catch (error) {
+        showToast('Clipboard copy failed on this browser.');
+      }
+    }
+
+    function saveToHistory(workout) {
+      const target = getHistoryTarget();
+      const bucket = loadJson(target.key, []);
+      bucket.unshift({
+        id: workout.id,
+        title: workout.title,
+        summary: workout.summary,
+        createdAt: workout.createdAt,
+        style: workout.style,
+        duration: workout.config.duration
+      });
+      const trimmed = uniqueBy(bucket, 'id').slice(0, 25);
+      saveJson(target.key, trimmed);
+      if (target.user) persistUserField(target.user.username, 'history', trimmed);
+    }
+
+    function renderSavedWorkouts() {
+      const target = getStorageTarget();
+      const items = loadJson(target.key, []);
+      if (!items.length) {
+        els.savedList.innerHTML = '<div class="empty-state">No saved workouts yet.</div>';
+        return;
+      }
+      els.savedList.innerHTML = items.map((item) => `
+        <article class="saved-item">
+          <div class="row-between">
+            <div>
+              <h4>${escapeHtml(item.title)}</h4>
+              <p>${escapeHtml(item.summary)}</p>
+            </div>
+            <button class="remove-btn" data-remove-saved="${item.id}" type="button">Remove</button>
+          </div>
+          <p class="tiny">${formatDate(item.createdAt)} • ${escapeHtml(item.style.toUpperCase())} • ${item.duration} min</p>
+        </article>
+      `).join('');
+
+      els.savedList.querySelectorAll('[data-remove-saved]').forEach((btn) => {
+        btn.addEventListener('click', () => removeSaved(btn.dataset.removeSaved));
+      });
+    }
+
+    function renderHistory() {
+      const target = getHistoryTarget();
+      const items = loadJson(target.key, []);
+      if (!items.length) {
+        els.historyList.innerHTML = '<div class="empty-state">No workout history yet.</div>';
+        return;
+      }
+      els.historyList.innerHTML = items.map((item) => `
+        <article class="saved-item">
+          <div class="row-between">
+            <div>
+              <h4>${escapeHtml(item.title)}</h4>
+              <p>${escapeHtml(item.summary)}</p>
+            </div>
+          </div>
+          <p class="tiny">${formatDate(item.createdAt)} • ${escapeHtml(item.style.toUpperCase())} • ${item.duration} min</p>
+        </article>
+      `).join('');
+    }
+
+    function removeSaved(id) {
+      const target = getStorageTarget();
+      const items = loadJson(target.key, []).filter((item) => item.id !== id);
+      saveJson(target.key, items);
+      if (target.user) persistUserField(target.user.username, 'saved', items);
+      renderSavedWorkouts();
+      showToast('Saved workout removed.');
+    }
+
+    function clearSaved() {
+      const target = getStorageTarget();
+      saveJson(target.key, []);
+      if (target.user) persistUserField(target.user.username, 'saved', []);
+      renderSavedWorkouts();
+      showToast('Saved workouts cleared.');
+    }
+
+    function exportSaved() {
+      const target = getStorageTarget();
+      const items = loadJson(target.key, []);
+      const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cress-wod-saved-workouts.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('Saved workouts exported.');
+    }
+
+    function getStorageTarget() {
+      const user = getCurrentUserRecord();
+      if (user) {
+        const key = `cresswod_saved_${user.username}`;
+        if (!localStorage.getItem(key)) saveJson(key, user.saved || []);
+        return { key, user };
+      }
+      return { key: STORAGE_KEYS.guestSaved, user: null };
+    }
+
+    function getHistoryTarget() {
+      const user = getCurrentUserRecord();
+      if (user) {
+        const key = `cresswod_history_${user.username}`;
+        if (!localStorage.getItem(key)) saveJson(key, user.history || []);
+        return { key, user };
+      }
+      return { key: STORAGE_KEYS.guestHistory, user: null };
+    }
+
+    function updateDailyVibe() {
+      const today = new Date().toISOString().slice(0, 10);
+      const vibe = DAILY_VIBES[hashString(today) % DAILY_VIBES.length];
+      els.dailyVibe.textContent = vibe;
+    }
+
+    function updateDatabaseCount() {
+      els.dbCount.textContent = `${exercises.length + warmups.length + finishers.length}+`;
+    }
+
+    function hydrateDonationSettings() {
+      const payload = {
+        name: DEFAULT_DONATION_NAME,
+        link: DEFAULT_DONATION_LINK
+      };
+      saveJson(STORAGE_KEYS.donation, payload);
+      if (els.donationName) els.donationName.value = payload.name;
+      if (els.donationLink) els.donationLink.value = payload.link;
+      renderDonationQr(payload.name, payload.link);
+    }
+
+    function handleDonationUpdate(event) {
+      event.preventDefault();
+      const payload = {
+        name: (els.donationName.value || DEFAULT_DONATION_NAME).trim(),
+        link: (els.donationLink.value || DEFAULT_DONATION_LINK).trim()
+      };
+      saveJson(STORAGE_KEYS.donation, payload);
+      renderDonationQr(payload.name, payload.link);
+      showToast('Donation QR updated.');
+    }
+
+    function resetDonationSettings() {
+      const payload = { name: DEFAULT_DONATION_NAME, link: DEFAULT_DONATION_LINK };
+      saveJson(STORAGE_KEYS.donation, payload);
+      if (els.donationName) els.donationName.value = payload.name;
+      if (els.donationLink) els.donationLink.value = payload.link;
+      renderDonationQr(payload.name, payload.link);
+      showToast('Donation settings reset.');
+    }
+
+    function renderDonationQr(name, link) {
+      const safeLink = link || DEFAULT_DONATION_LINK;
+      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(safeLink)}`;
+      els.qrImage.src = qr;
+      els.qrImage.alt = `${name} QR code`;
+      els.donationLabel.textContent = name;
+      els.donationLinkText.textContent = safeLink;
+      els.donationOpenLink.href = safeLink;
+      els.donationOpenLink.textContent = `Open ${name}`;
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      const username = document.getElementById('registerUsername').value.trim().toLowerCase();
+      const password = document.getElementById('registerPassword').value;
+      const displayName = document.getElementById('registerDisplayName').value.trim();
+
+      if (!username || !password) {
+        showToast('Username and password are required.');
+        return;
+      }
+      if (username.length < 3) {
+        showToast('Username needs at least 3 characters.');
+        return;
+      }
+      if (password.length < 6) {
+        showToast('Password needs at least 6 characters.');
+        return;
+      }
+
+      const users = loadJson(STORAGE_KEYS.users, []);
+      if (users.some((user) => user.username === username)) {
+        showToast('That username already exists.');
+        return;
+      }
+
+      const passwordHash = await sha256(password);
+      users.push({
+        username,
+        displayName: displayName || username,
+        passwordHash,
+        createdAt: new Date().toISOString(),
+        saved: loadJson(STORAGE_KEYS.guestSaved, []),
+        history: loadJson(STORAGE_KEYS.guestHistory, [])
+      });
+      saveJson(STORAGE_KEYS.users, users);
+      localStorage.setItem(STORAGE_KEYS.currentUser, username);
+      document.getElementById('registerForm').reset();
+      updateAccountStatus();
+      renderSavedWorkouts();
+      renderHistory();
+      showToast('Account created.');
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value;
+      const users = loadJson(STORAGE_KEYS.users, []);
+      const user = users.find((item) => item.username === username);
+      if (!user) {
+        showToast('No account found with that username.');
+        return;
+      }
+      const passwordHash = await sha256(password);
+      if (user.passwordHash !== passwordHash) {
+        showToast('Wrong password.');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEYS.currentUser, username);
+      updateAccountStatus();
+      renderSavedWorkouts();
+      renderHistory();
+      document.getElementById('loginForm').reset();
+      showToast('Account loaded.');
+    }
+
+    function logout() {
+      localStorage.removeItem(STORAGE_KEYS.currentUser);
+      updateAccountStatus();
+      renderSavedWorkouts();
+      renderHistory();
+      showToast('Logged out.');
+    }
+
+    function updateAccountStatus() {
+      const user = getCurrentUserRecord();
+      if (!user) {
+        els.accountStatus.innerHTML = `
+          <div class="status-banner">
+            <strong>Guest mode</strong>
+            <span class="muted">Workouts can still be saved locally, but they are not tied to a named account.</span>
+          </div>
+          <div class="mini-card">
+            <h3>How local accounts work</h3>
+            <p class="muted">Saved workouts and history stay organized under a local account name on the same device. If you ever want real cross-device accounts later, this can be swapped for Firebase Auth or Supabase Auth.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const savedCount = loadJson(`cresswod_saved_${user.username}`, user.saved || []).length;
+      const historyCount = loadJson(`cresswod_history_${user.username}`, user.history || []).length;
+      els.accountStatus.innerHTML = `
+        <div class="status-banner">
+          <strong>Current account: ${escapeHtml(user.displayName || user.username)}</strong>
+          <span class="muted">Username: ${escapeHtml(user.username)}</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-pill">
+            <strong>${savedCount}</strong>
+            <span class="muted">saved workouts</span>
+          </div>
+          <div class="stat-pill">
+            <strong>${historyCount}</strong>
+            <span class="muted">history items</span>
+          </div>
+          <div class="stat-pill">
+            <strong>${formatDate(user.createdAt)}</strong>
+            <span class="muted">joined</span>
+          </div>
+        </div>
+        <div class="quick-actions" style="margin-top: 16px;">
+          <button class="primary-btn" id="logoutBtn" type="button">Logout</button>
+        </div>
+        <div class="auth-note">This account data lives in localStorage for the current browser. It is useful for a static site, but it is not a real cloud account system.</div>
+      `;
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+    }
+
+    function getCurrentUserRecord() {
+      const username = localStorage.getItem(STORAGE_KEYS.currentUser);
+      if (!username) return null;
+      const users = loadJson(STORAGE_KEYS.users, []);
+      return users.find((item) => item.username === username) || null;
+    }
+
+    function persistUserField(username, field, value) {
+      const users = loadJson(STORAGE_KEYS.users, []);
+      const idx = users.findIndex((user) => user.username === username);
+      if (idx === -1) return;
+      users[idx][field] = value;
+      saveJson(STORAGE_KEYS.users, users);
+    }
+
+    function loadJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function saveJson(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    async function sha256(value) {
+      const data = new TextEncoder().encode(value);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function randomChoice(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function intersects(a, b) {
+      return a.some((item) => b.includes(item));
+    }
+
+    function dedupeByName(items) {
+      const map = new Map();
+      items.forEach((item) => {
+        if (!map.has(item.name)) map.set(item.name, item);
+      });
+      return [...map.values()];
+    }
+
+    function uniqueBy(items, key) {
+      const seen = new Set();
+      return items.filter((item) => {
+        const value = item[key];
+        if (seen.has(value)) return false;
+        seen.add(value);
+        return true;
+      });
+    }
+
+    function hashString(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i += 1) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash);
+    }
+
+    function formatDate(iso) {
+      if (!iso) return 'Unknown';
+      const date = new Date(iso);
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric'
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    let toastTimer;
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+    }
+  </script>
+</body>
+</html>
